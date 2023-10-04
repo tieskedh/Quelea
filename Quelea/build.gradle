@@ -16,11 +16,11 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.9.20-Beta2'
 }
 
-configurations.all {
-    resolutionStrategy {
-        cacheChangingModulesFor 0, 'seconds'
-    }
-}
+//configurations.all {
+//    resolutionStrategy {
+//        cacheChangingModulesFor 0, 'seconds'
+//    }
+//}
 
 repositories {
     mavenCentral()
@@ -246,6 +246,7 @@ dependencies {
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.8.2'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.2'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation("com.russhwolf:multiplatform-settings:1.0.0")
 }
 
 jar {

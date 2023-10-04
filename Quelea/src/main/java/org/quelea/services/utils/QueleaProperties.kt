@@ -17,6 +17,7 @@
  */
 package org.quelea.services.utils
 
+import com.russhwolf.settings.*
 import javafx.geometry.BoundingBox
 import javafx.geometry.Bounds
 import javafx.scene.paint.Color
@@ -27,8 +28,8 @@ import org.quelea.services.languages.spelling.DictionaryManager
 import org.quelea.services.notice.NoticeDrawer.NoticePosition
 import org.quelea.utils.javaTrim
 import java.io.File
-import java.io.FileWriter
 import java.io.IOException
+import java.util.Properties
 import java.util.logging.Level
 
 /**
@@ -38,44 +39,38 @@ import java.util.logging.Level
  * @property propFile the properties file.
  * @author Michael
  */
-internal class QueleaProperties private constructor(userHome: String?) : SortedProperties() {
-    private val userHome: String = userHome
-        .takeUnless { it.isNullOrEmpty() }
-        ?: requireNotNull(System.getProperty("user.home")){
-            "user.home is not set"
-        }
-
-
-    private val propFile: File
-        get() = File(queleaUserHome, "quelea.properties")
+class QueleaProperties private constructor(
+    settings : Settings,
+    private val _queleaUserHome: File
+) : Settings by settings {
 
     /**
-     * Save these properties to the file.
+     * The Quelea home directory in the user's directory.
      */
-    private fun write() {
-        try {
-            FileWriter(propFile).use { writer -> store(writer, "Auto save") }
-        } catch (ex: IOException) {
-//            LOGGER.log(Level.WARNING, "Couldn't store properties", ex);
+    val queleaUserHome: File
+        get() {
+            val ret = _queleaUserHome
+            if (!ret.exists()) {
+                ret.mkdir()
+            }
+            return ret
         }
-    }
 
     /**
      * The languages file that for the GUI that should be used as specified in the properties file.
      */
     val languageFile: File
-        get() = File("languages", getProperty(QueleaPropertyKeys.languageFileKey, "gb.lang"))
+        get() = File("languages", getString(QueleaPropertyKeys.languageFileKey, "gb.lang"))
 
 
-    val isDictionaryEnabled: Boolean
-        get() = getProperty(QueleaPropertyKeys.enableDictKey, "false").toBoolean()
+    val isDictionaryEnabled by boolean(QueleaPropertyKeys.enableDictKey, false)
 
     /**
      * The GUI - languages file that should be used as specified in the properties file.
      */
     val dictionary: Dictionary
         get() {
-            val dict = getProperty(QueleaPropertyKeys.languageFileKey, "gb.lang")
+            val dict = getString(QueleaPropertyKeys.languageFileKey, "gb.lang")
             val parts = dict.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }
             val fileName = parts.joinToString(".") + ".words"
             return DictionaryManager.INSTANCE.getFromFilename(fileName)
@@ -89,8 +84,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param file the name of the language file to use.
      */
     fun setLanguageFile(file: String?) {
-        setProperty(QueleaPropertyKeys.languageFileKey, file)
-        write()
+        this[QueleaPropertyKeys.languageFileKey] = file
     }
 
     /**
@@ -109,13 +103,12 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     var displayVideoTab: Boolean
         get() = try {
-            getProperty(QueleaPropertyKeys.videoTabKey, "false").toBoolean()
+            getBoolean(QueleaPropertyKeys.videoTabKey, false)
         } catch (ex: Exception) {
             true
         }
         set(videoTab) {
-            setProperty(QueleaPropertyKeys.videoTabKey, videoTab.toString())
-            write()
+            this[QueleaPropertyKeys.videoTabKey] = videoTab
         }
 
     /**
@@ -124,7 +117,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     val sceneInfo: SceneInfo?
         get() = try {
-            val parts = getProperty(QueleaPropertyKeys.sceneInfoKey, "461,15,997,995,false")
+            val parts = getString(QueleaPropertyKeys.sceneInfoKey, "461,15,997,995,false")
                 .split(",".toRegex())
                 .dropLastWhile { it.isEmpty() }
             when (parts.size) {
@@ -148,7 +141,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
             }
         } catch (ex: Exception) {
             LoggerUtils.getLogger()
-                .log(Level.WARNING, "Invalid scene info: " + getProperty(QueleaPropertyKeys.sceneInfoKey), ex)
+                .log(Level.WARNING, "Invalid scene info: " + get(QueleaPropertyKeys.sceneInfoKey), ex)
             null
         }
 
@@ -162,62 +155,28 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param info the scene info.
      */
     fun setSceneInfo(info: SceneInfo) {
-        setProperty(QueleaPropertyKeys.sceneInfoKey, info.toString())
-        write()
+        this[QueleaPropertyKeys.sceneInfoKey] = info.toString()
     }
 
     /**
      * the posiotion of the main splitpane divider:  0-1, or -1 if none is set.
      */
-    var mainDivPos: Double
-        get() = getProperty(QueleaPropertyKeys.mainDivposKey, "-1").toDouble()
-        set(value) {
-            setProperty(QueleaPropertyKeys.mainDivposKey, value.toString())
-            write()
-        }
-    val elevantoClientId: String
-        get() = getProperty(QueleaPropertyKeys.elevantoClientIdKey, "91955")
+    var mainDivPos by double(QueleaPropertyKeys.mainDivposKey, -1.0)
 
-    /**
-     * The library / schedule splitpane divider position property: 0-1, or -1 if none is set.
-     */
-    var libraryDivPos: Double
-        get() = getProperty(QueleaPropertyKeys.libraryDivposKey, "-1").toDouble()
-        set(value) {
-            setProperty(QueleaPropertyKeys.libraryDivposKey, value.toString())
-            write()
-        }
+    val elevantoClientId by string(QueleaPropertyKeys.elevantoClientIdKey, "91955")
 
-    /**
-     * The preview / live splitpane divider position property: 0-1, or -1 if none is set.
-     */
 
-    var prevLiveDivPos: Double
-        get() = getProperty(QueleaPropertyKeys.preliveDivposKey, "-1").toDouble()
-        set(value) {
-            setProperty(QueleaPropertyKeys.preliveDivposKey, value.toString())
-            write()
-        }
+    /** The library / schedule splitpane divider position property: 0-1, or -1 if none is set. */
+    var libraryDivPos by double(QueleaPropertyKeys.libraryDivposKey, -1.0)
 
-    /**
-     * The canvas divider position property: 0-1, or -1 if none is set.
-     */
-    var canvasDivPos: Double
-        get() = getProperty(QueleaPropertyKeys.canvasDivposKey, "-1").toDouble()
-        set(value) {
-            setProperty(QueleaPropertyKeys.canvasDivposKey, value.toString())
-            write()
-        }
+    /** The preview / live splitpane divider position property: 0-1, or -1 if none is set. */
+    var prevLiveDivPos by double(QueleaPropertyKeys.preliveDivposKey, -1.0)
 
-    /**
-     * The preview panel divider position property: 0-1, or -1 if none is set.
-     */
-    var previewDivPosKey: Double
-        get() = getProperty(QueleaPropertyKeys.previewDivposKey, "-1").toDouble()
-        set(value) {
-            setProperty(QueleaPropertyKeys.previewDivposKey, value.toString())
-            write()
-        }
+    /**  The canvas divider position property: 0-1, or -1 if none is set. */
+    var canvasDivPos by double(QueleaPropertyKeys.canvasDivposKey, -1.0)
+
+    /** The preview panel divider position property: 0-1, or -1 if none is set. */
+    var previewDivPosKey: Double by double(QueleaPropertyKeys.previewDivposKey, -1.0)
 
 
     /**
@@ -229,7 +188,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     var chosenFonts: List<String>
         get() {
-            val fontStr = getProperty(
+            val fontStr = getString(
                 QueleaPropertyKeys.chosenFontsKey,
                 "Arial|Liberation Sans|Noto Sans|Oxygen|Roboto|Vegur|Roboto Mono|Ubuntu Mono"
             )
@@ -239,8 +198,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
         }
         set(fonts) {
             val fontsString = fonts.joinToString("|")
-            setProperty(QueleaPropertyKeys.chosenFontsKey, fontsString)
-            write()
+            this[QueleaPropertyKeys.chosenFontsKey]= fontsString
         }
 
     /**
@@ -250,28 +208,18 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * - this can stop the sizes jumping all over the place
      * depending on how much text there is per slide.
      */
-    var useUniformFontSize: Boolean
-        get() = getProperty(QueleaPropertyKeys.uniformFontSizeKey, "true").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.uniformFontSizeKey, value.toString())
-        }
+    var useUniformFontSize by boolean(QueleaPropertyKeys.uniformFontSizeKey, true)
 
-    /**
-     * Wheter we should show verse numbers for bible passages.
-     */
-    var showVerseNumbers: Boolean
-        get() = getProperty(QueleaPropertyKeys.showVerseNumbersKey, "true").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.showVerseNumbersKey, value.toString())
-        }
+    /** Wheter we should show verse numbers for bible passages. */
+    var showVerseNumbers: Boolean by boolean(QueleaPropertyKeys.showVerseNumbersKey, true)
 
     /**
      * The colour to use for notice backgrounds.
      */
-    var noticeBackgroundColour: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.noticeBackgroundColourKey, Color.BROWN.getStr()))
+    var noticeBackgroundColour : Color
+        get() = getColor(getString(QueleaPropertyKeys.noticeBackgroundColourKey, getStr(Color.BROWN)))
         set(colour) {
-            setProperty(QueleaPropertyKeys.noticeBackgroundColourKey, colour.getStr())
+            this[QueleaPropertyKeys.noticeBackgroundColourKey] = getStr(colour)
         }
 
     /**
@@ -279,21 +227,15 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     var noticePosition: NoticePosition
         get() = if (
-            getProperty(QueleaPropertyKeys.noticePositionKey, "Bottom")
+            getString(QueleaPropertyKeys.noticePositionKey, "Bottom")
                 .equals("top", ignoreCase = true)
         ) NoticePosition.TOP else NoticePosition.BOTTOM
         set(position) {
-            setProperty(QueleaPropertyKeys.noticePositionKey, position.text)
+            this[QueleaPropertyKeys.noticePositionKey] = position.text
         }
 
-    /**
-     * The speed at which to display the notices.
-     */
-    var noticeSpeed: Double
-        get() = getProperty(QueleaPropertyKeys.noticeSpeedKey, "10").toDouble()
-        set(speed) {
-            setProperty(QueleaPropertyKeys.noticeSpeedKey, speed.toString())
-        }
+    /** The speed at which to display the notices. */
+    var noticeSpeed by double(QueleaPropertyKeys.noticeSpeedKey, 10.0)
 
     /**
      * The last directory used in the general file chooser.
@@ -302,7 +244,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     val lastDirectory: File?
         get() {
-            val path = getProperty(QueleaPropertyKeys.lastDirectoryKey) ?: return null
+            val path = getStringOrNull(QueleaPropertyKeys.lastDirectoryKey) ?: return null
             val f = File(path)
             return if (f.isDirectory()) f
             else {
@@ -318,7 +260,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param directory the last directory used in the general file chooser.
      */
     fun setLastDirectory(directory: File) {
-        setProperty(QueleaPropertyKeys.lastDirectoryKey, directory.absolutePath)
+        this[QueleaPropertyKeys.lastDirectoryKey]= directory.absolutePath
     }
 
     /**
@@ -326,7 +268,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     val lastScheduleFileDirectory: File?
         get() {
-            val path = getProperty(QueleaPropertyKeys.lastSchedulefileDirectoryKey) ?: return null
+            val path = getStringOrNull(QueleaPropertyKeys.lastSchedulefileDirectoryKey) ?: return null
             val f = File(path)
             return if (f.isDirectory()) f
             else {
@@ -340,41 +282,33 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * Whether the schedule should embed videos when saving:
      * true if should embed, false otherwise
      */
-    var embedMediaInScheduleFile: Boolean
-        get() = getProperty(QueleaPropertyKeys.scheduleEmbedMediaKey, "true").toBoolean()
-        set(embed) {
-            setProperty(QueleaPropertyKeys.scheduleEmbedMediaKey, "$embed")
-        }
+    var embedMediaInScheduleFile by boolean(QueleaPropertyKeys.scheduleEmbedMediaKey, true)
 
     /**
      * Whether item themes can override the global theme.
      */
-    var itemThemeOverride: Boolean
-        get() = getProperty(QueleaPropertyKeys.itemThemeOverrideKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.itemThemeOverrideKey, value.toString() + "")
-        }
+    var itemThemeOverride by boolean(QueleaPropertyKeys.itemThemeOverrideKey, false)
 
     /**
      * The currently selected global theme file.
      */
     var globalSongThemeFile: File?
-        get() = getProperty(QueleaPropertyKeys.globalSongThemeFileKey)
+        get() = getStringOrNull(QueleaPropertyKeys.globalSongThemeFileKey)
             .takeUnless { it.isNullOrEmpty() }
             ?.let(::File)
         set(file) {
-            setProperty(QueleaPropertyKeys.globalSongThemeFileKey, file?.absolutePath.orEmpty())
+            this[QueleaPropertyKeys.globalSongThemeFileKey] = file?.absolutePath.orEmpty()
         }
 
     /**
      * The currently selected global theme file.
      */
     var globalBibleThemeFile: File?
-        get() = getProperty(QueleaPropertyKeys.globalBibleThemeFileKey)
+        get() = getStringOrNull(QueleaPropertyKeys.globalBibleThemeFileKey)
             .takeUnless { it.isNullOrEmpty() }
             ?.let(::File)
         set(file) {
-            setProperty(QueleaPropertyKeys.globalBibleThemeFileKey, file?.absolutePath.orEmpty())
+            this[QueleaPropertyKeys.globalBibleThemeFileKey] = file?.absolutePath.orEmpty()
         }
 
     /**
@@ -383,7 +317,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param directory the last directory used in the schedule file chooser.
      */
     fun setLastScheduleFileDirectory(directory: File) {
-        setProperty(QueleaPropertyKeys.lastSchedulefileDirectoryKey, directory.absolutePath)
+        this[QueleaPropertyKeys.lastSchedulefileDirectoryKey] = directory.absolutePath
     }
 
     /**
@@ -393,7 +327,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     val lastVideoDirectory: File?
         get() {
-            val path = getProperty(QueleaPropertyKeys.lastVideoDirectoryKey) ?: return null
+            val path = getStringOrNull(QueleaPropertyKeys.lastVideoDirectoryKey) ?: return null
             val f = File(path)
             return if (f.isDirectory()) f else {
                 LoggerUtils.getLogger()
@@ -408,7 +342,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param directory the last directory used in the video file chooser.
      */
     fun setLastVideoDirectory(directory: File) {
-        setProperty(QueleaPropertyKeys.lastVideoDirectoryKey, directory.absolutePath)
+        this[QueleaPropertyKeys.lastVideoDirectoryKey] = directory.absolutePath
     }
 
     /**
@@ -416,132 +350,82 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * true if auto-play is enabled, false otherwise.
      */
 
-    var autoPlayVideo: Boolean
-        get() = getProperty(QueleaPropertyKeys.autoplayVidKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.autoplayVidKey, value.toString())
-        }
+    var autoPlayVideo by boolean(QueleaPropertyKeys.autoplayVidKey, false)
+
     /**
      * Whether to use Java FX rendering for video playback with VLC.
      * This approach is totally cross-platform capable.
      *
      * true if should use java fx for VLC Rendering, false otherwise
      */
-    var useJavaFXforVLCRendering: Boolean
-        get() = getProperty(QueleaPropertyKeys.useVlcJavafxRenderingKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.useVlcJavafxRenderingKey, value.toString())
-        }
+    var useJavaFXforVLCRendering by boolean(QueleaPropertyKeys.useVlcJavafxRenderingKey, false)
 
     /**
      * The font size at which to display the notices.
      */
-    var noticeFontSize: Double
-        get() = getProperty(QueleaPropertyKeys.noticeFontSizeKey, "50").toDouble()
-        set(fontSize) {
-            setProperty(QueleaPropertyKeys.noticeFontSizeKey, fontSize.toString())
-        }
+    var noticeFontSize by double(QueleaPropertyKeys.noticeFontSizeKey, 50.0)
+
     /**
      * Whether we should attempt to fetch translations automatically.
      */
-    var autoTranslate: Boolean
-        get() = getProperty(QueleaPropertyKeys.autoTranslateKey, "true").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.autoTranslateKey, value.toString())
-        }
+    var autoTranslate by boolean(QueleaPropertyKeys.autoTranslateKey, true)
 
     /**
      * The maximum font size used by text displayables.
      */
-    var maxFontSize: Double
-        get() = getProperty(QueleaPropertyKeys.maxFontSizeKey, "1000").toDouble()
-        set(fontSize) {
-            setProperty(QueleaPropertyKeys.maxFontSizeKey, fontSize.toString())
-        }
+    var maxFontSize by double(QueleaPropertyKeys.maxFontSizeKey, 1000.0)
 
     /**
      * The additional line spacing (in pixels) to be used between each line.
      */
-    var additionalLineSpacing: Double
-        get() = getProperty(QueleaPropertyKeys.additionalLineSpacingKey, "10").toDouble()
-        set(spacing) {
-            setProperty(QueleaPropertyKeys.additionalLineSpacingKey, spacing.toString())
-        }
+    var additionalLineSpacing by double(QueleaPropertyKeys.additionalLineSpacingKey, 10.0)
 
     /**
      * The thumbnail size.
      */
-    var thumbnailSize: Int
-        get() = getProperty(QueleaPropertyKeys.thumbnailSizeKey, "200").toInt()
-        set(thumbnailSize) {
-            setProperty(QueleaPropertyKeys.thumbnailSizeKey, thumbnailSize.toString())
-        }
-    var planningCentrePrevDays: Int
-        get() = getProperty(QueleaPropertyKeys.planningCentrePrevDaysKey, "31").toInt()
-        set(days) {
-            setProperty(QueleaPropertyKeys.planningCentrePrevDaysKey, days.toString())
-        }
-    var useDefaultTranslation: Boolean
-        get() = getProperty(QueleaPropertyKeys.useDefaultTranslation, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.useDefaultTranslation, value.toString())
-        }
-    var defaultTranslationName: String?
-        get() = getProperty(QueleaPropertyKeys.defaultTranslationName, "")
-        set(value) {
-            setProperty(QueleaPropertyKeys.defaultTranslationName, value)
-        }
+    var thumbnailSize by int(QueleaPropertyKeys.thumbnailSizeKey, 200)
+
+    var planningCentrePrevDays by int(QueleaPropertyKeys.planningCentrePrevDaysKey, 31)
+
+    var useDefaultTranslation by boolean(QueleaPropertyKeys.useDefaultTranslation, false)
+
+    var defaultTranslationName by string(QueleaPropertyKeys.defaultTranslationName, "")
 
     /**
      * Wheter the extra live panel toolbar options setting should be shown. Hidden by default.
      */
-    var showExtraLivePanelToolbarOptions: Boolean
-        get() = getProperty(QueleaPropertyKeys.showExtraLivePanelToolbarOptionsKey, "false").toBoolean()
-        set(show) {
-            setProperty(QueleaPropertyKeys.showExtraLivePanelToolbarOptionsKey, show.toString())
-        }
+    var showExtraLivePanelToolbarOptions by boolean(
+        QueleaPropertyKeys.showExtraLivePanelToolbarOptionsKey, false
+    )
 
     /**
      * Whether the preview and live dividers should be linked. eg move together
      * true if the preview and live dividers should be linked, else false
      */
-    val linkPreviewAndLiveDividers: Boolean
-        get() = getProperty(QueleaPropertyKeys.linkPreviewAndLiveDividers, "true").toBoolean()
+    val linkPreviewAndLiveDividers by boolean(QueleaPropertyKeys.linkPreviewAndLiveDividers, true)
 
     /**
      * Should also remove from live view, the alternative is waiting until something replaces it.
      * - true: should remove from liveview
      * - false: wait until something replaces it
      */
-    var clearLiveOnRemove: Boolean
-        get() = getProperty(QueleaPropertyKeys.clearLiveOnRemoveKey, "true").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.clearLiveOnRemoveKey, value.toString())
-        }
+    var clearLiveOnRemove by boolean(QueleaPropertyKeys.clearLiveOnRemoveKey, true)
 
     /**
      * The location of Quelea's Facebook page.
      */
-    val facebookPageLocation: String
-        get() = getProperty(QueleaPropertyKeys.facebookPageKey, "http://www.facebook.com/quelea.projection")
+    val facebookPageLocation: String by string(
+        QueleaPropertyKeys.facebookPageKey, "http://www.facebook.com/quelea.projection"
+    )
 
     /**
      * The location of Quelea's Facebook page.
      */
-    val wikiPageLocation: String
-        get() = getProperty(QueleaPropertyKeys.wikiPageKey, "http://quelea.org/wiki/index.php/Main_Page")
+    val wikiPageLocation: String by string(
+        QueleaPropertyKeys.wikiPageKey, "http://quelea.org/wiki/index.php/Main_Page"
+    )
 
-    /**
-     * The Quelea home directory in the user's directory.
-     */
-    val queleaUserHome: File
-        get() {
-            val ret = File(File(userHome), ".quelea")
-            if (!ret.exists()) {
-                ret.mkdir()
-            }
-            return ret
-        }
+
 
     /**
      * The user's turbo db exe converter file.
@@ -549,42 +433,32 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
     val turboDBExe: File
         get() = File(queleaUserHome, "TdbDataX.exe")
 
-    val translationFontSizeOffset: Int
-        get() = getProperty(QueleaPropertyKeys.translationFontSizeOffsetKey, "3").toInt()
+    val translationFontSizeOffset by int(QueleaPropertyKeys.translationFontSizeOffsetKey, 3)
 
     /**
      * The font to use for stage text.
      */
-    var stageTextFont: String?
-        get() = getProperty(QueleaPropertyKeys.stageFontKey, "SansSerif")
-        set(font) {
-            setProperty(QueleaPropertyKeys.stageFontKey, font)
-            write()
-        }
+    var stageTextFont: String by string(QueleaPropertyKeys.stageFontKey, "SansSerif")
 
     /**
      * The alignment of the text on stage view.
      */
     val stageTextAlignment: String
-        get() = TextAlignment.parse(getProperty(QueleaPropertyKeys.stageTextAlignmentKey, "LEFT")).toFriendlyString()
+        get() = TextAlignment.parse(
+            getString(QueleaPropertyKeys.stageTextAlignmentKey, "LEFT")
+        ).toFriendlyString()
 
     /**
      * The alignment of the text on stage view.
      */
     fun setStageTextAlignment(alignment: TextAlignment) {
-        setProperty(QueleaPropertyKeys.stageTextAlignmentKey, alignment.toString())
-        write()
+        this[QueleaPropertyKeys.stageTextAlignmentKey] = alignment.toString()
     }
 
     /**
      * Whether we should display the chords in stage view.
      */
-    var showChords: Boolean
-        get() = getProperty(QueleaPropertyKeys.stageShowChordsKey, "true").toBoolean()
-        set(showChords) {
-            setProperty(QueleaPropertyKeys.stageShowChordsKey, showChords.toString())
-            write()
-        }
+    var showChords: Boolean by boolean(QueleaPropertyKeys.stageShowChordsKey, true)
 
     /**
      * Determine whether we should phone home at startup with anonymous
@@ -595,7 +469,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @return true if we should phone home, false otherwise.
      */
     val phoneHome: Boolean
-        get() = getProperty(QueleaPropertyKeys.phonehomeKey, "true").toBoolean()
+        get() = getBoolean(QueleaPropertyKeys.phonehomeKey, true)
 
     /**
      * The directory used for storing the bibles.
@@ -631,45 +505,28 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
     /**
      * The extension used for quelea schedules.
      */
-    val scheduleExtension: String
-        get() = getProperty(QueleaPropertyKeys.queleaScheduleExtensionKey, "qsch")
+    val scheduleExtension by string(QueleaPropertyKeys.queleaScheduleExtensionKey, "qsch")
 
     /**
      * The extension used for quelea song packs.
      */
-    val songPackExtension: String
-        get() = getProperty(QueleaPropertyKeys.queleaSongpackExtensionKey, "qsp")
+    val songPackExtension by string(QueleaPropertyKeys.queleaSongpackExtensionKey, "qsp")
 
     /**
      * The control screen number.
      * This is the screen that the main Quelea operator window will be displayed on.
      */
-    var controlScreen: Int
-        get() = getProperty(QueleaPropertyKeys.controlScreenKey, "0").toInt()
-        set(screen) {
-            setProperty(QueleaPropertyKeys.controlScreenKey, screen.toString())
-            write()
-        }
+    var controlScreen by int(QueleaPropertyKeys.controlScreenKey, 0)
 
     /**
      * Whether one line mode should be enabled.
      */
-    var oneLineMode: Boolean
-        get() = getProperty(QueleaPropertyKeys.oneLineModeKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.oneLineModeKey, value.toString())
-            write()
-        }
+    var oneLineMode by boolean(QueleaPropertyKeys.oneLineModeKey, false)
 
     /**
      * Whether texts have shadows.
      */
-    var textShadow: Boolean
-        get() = getProperty(QueleaPropertyKeys.textShadowKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.textShadowKey, value.toString())
-            write()
-        }
+    var textShadow by boolean(QueleaPropertyKeys.textShadowKey, false)
 
     /**
      * The number of the projector screen: the screen that the
@@ -677,12 +534,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      *
      * @return the projector screen number.
      */
-    var projectorScreen: Int
-        get() = getProperty(QueleaPropertyKeys.projectorScreenKey, "1").toInt()
-        set(screen) {
-            setProperty(QueleaPropertyKeys.projectorScreenKey, screen.toString())
-            write()
-        }
+    var projectorScreen: Int by int(QueleaPropertyKeys.projectorScreenKey, 1)
 
     /**
      * Whether the projection screen automatically should be moved to
@@ -692,30 +544,21 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      *
      * @return true if the projector screen should be moved, false otherwise.
      */
-    var useAutoExtend: Boolean
-        get() = getProperty(QueleaPropertyKeys.useAutoExtendKey, "false").toBoolean()
-        set(extend) {
-            setProperty(QueleaPropertyKeys.useAutoExtendKey, extend.toString())
-        }
+    var useAutoExtend: Boolean by boolean(QueleaPropertyKeys.useAutoExtendKey, false)
 
     /**
      * The maximum number of characters allowed on any one line of projected
      * text. If the line is longer than this, it will be split up intelligently.
      *
      */
-    var maxChars: Int
-        get() = getProperty(QueleaPropertyKeys.maxCharsKey, "30").toInt()
-        set(maxChars) {
-            setProperty(QueleaPropertyKeys.maxCharsKey, maxChars.toString())
-            write()
-        }
+    var maxChars: Int by int(QueleaPropertyKeys.maxCharsKey, 30)
 
     /**
      * The custom projector co-ordinates.
      */
     var projectorCoords: Bounds
         get() {
-            val prop = getProperty(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
+            val prop = getString(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
                 .split(",".toRegex()).dropLastWhile { it.isEmpty() }
             return BoundingBox(
                 prop[0].toInt().toDouble(),
@@ -726,99 +569,51 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
         }
         set(coords) {
             val rectStr = coords.toCommaString()
-            setProperty(QueleaPropertyKeys.projectorCoordsKey, rectStr)
-            write()
+            this[QueleaPropertyKeys.projectorCoordsKey] = rectStr
         }
 
     private fun Bounds.toCommaString() = "${minX.toInt()},${minY.toInt()},${width.toInt()},${height.toInt()}"
 
-    fun setXProjectorCoord(x: String) {
-        val prop = getProperty(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
+    private fun updateCoord(
+        x : String? = null,
+        y : String? = null,
+        width:  String? = null,
+        height: String? = null,
+        key : String
+    ){
+        val prop = getString(key, "0,0,0,0").javaTrim()
             .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (x
-                + "," + prop[1]
-                + "," + prop[2]
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.projectorCoordsKey, rectStr)
-        write()
+        val rectStr = (
+                (x ?: prop[0])
+                        + "," + (y ?: prop[1])
+                        + "," + (width ?: prop[2])
+                        + "," + (height ?: prop[3]))
+        this[key]= rectStr
     }
 
-    fun setYProjectorCoord(y: String) {
-        val prop = getProperty(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + y
-                + "," + prop[2]
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.projectorCoordsKey, rectStr)
-        write()
-    }
+    private fun setProjectorCoord(
+        x : String? = null,
+        y : String? = null,
+        width:  String? = null,
+        height: String? = null
+    ) = updateCoord(x, y, width, height, QueleaPropertyKeys.projectorCoordsKey)
 
-    fun setWidthProjectorCoord(width: String) {
-        val prop = getProperty(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + prop[1]
-                + "," + width
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.projectorCoordsKey, rectStr)
-        write()
-    }
+    fun setXProjectorCoord(x: String) = setProjectorCoord(x = x)
+    fun setYProjectorCoord(y: String) = setProjectorCoord(y=y)
+    fun setWidthProjectorCoord(width: String) = setProjectorCoord(width=width)
+    fun setHeightProjectorCoord(height: String) = setProjectorCoord(height=height)
 
-    fun setHeightProjectorCoord(height: String) {
-        val prop = getProperty(QueleaPropertyKeys.projectorCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + prop[1]
-                + "," + prop[2]
-                + "," + height)
-        setProperty(QueleaPropertyKeys.projectorCoordsKey, rectStr)
-        write()
-    }
+    private fun setStageCoord(
+        x : String? = null,
+        y : String? = null,
+        width:  String? = null,
+        height: String? = null
+    ) = updateCoord(x,y,width,height, QueleaPropertyKeys.stageCoordsKey)
 
-    fun setXStageCoord(x: String) {
-        val prop = getProperty(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (x
-                + "," + prop[1]
-                + "," + prop[2]
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.stageCoordsKey, rectStr)
-        write()
-    }
-
-    fun setYStageCoord(y: String) {
-        val prop = getProperty(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + y
-                + "," + prop[2]
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.stageCoordsKey, rectStr)
-        write()
-    }
-
-    fun setWidthStageCoord(width: String) {
-        val prop = getProperty(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + prop[1]
-                + "," + width
-                + "," + prop[3])
-        setProperty(QueleaPropertyKeys.stageCoordsKey, rectStr)
-        write()
-    }
-
-    fun setHeightStageCoord(height: String) {
-        val prop = getProperty(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
-            .split(",".toRegex()).dropLastWhile { it.isEmpty() }
-        val rectStr = (prop[0]
-                + "," + prop[1]
-                + "," + prop[2]
-                + "," + height)
-        setProperty(QueleaPropertyKeys.stageCoordsKey, rectStr)
-        write()
-    }
+    fun setXStageCoord(x: String) = setStageCoord(x=x)
+    fun setYStageCoord(y: String) = setStageCoord(y=y)
+    fun setWidthStageCoord(width: String) = setStageCoord(width=width)
+    fun setHeightStageCoord(height: String) = setStageCoord(height=height)
 
 
     /**
@@ -827,42 +622,35 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * - true = it's set to manual co-ordinates
      * - false = it's set to a screen number.
      */
-    val isProjectorModeCoords: Boolean
-        get() = "coords" == getProperty(QueleaPropertyKeys.projectorModeKey)
+    val isProjectorModeCoords : Boolean
+        get() = "coords" == getStringOrNull(QueleaPropertyKeys.projectorModeKey)
 
     /**
      * Set the projector mode to be manual co-ordinates.
      */
     fun setProjectorModeCoords() {
-        setProperty(QueleaPropertyKeys.projectorModeKey, "coords")
-        write()
+        this[ QueleaPropertyKeys.projectorModeKey]= "coords"
     }
 
     /**
      * Set the projector mode to be a screen number.
      */
     fun setProjectorModeScreen() {
-        setProperty(QueleaPropertyKeys.projectorModeKey, "screen")
-        write()
+        this[QueleaPropertyKeys.projectorModeKey] = "screen"
     }
 
     /**
      * The number of the stage screen. This is the screen that the projected
      * output will be displayed on.
      */
-    var stageScreen: Int
-        get() = getProperty(QueleaPropertyKeys.stageScreenKey, "-1").toInt()
-        set(screen) {
-            setProperty(QueleaPropertyKeys.stageScreenKey, screen.toString())
-            write()
-        }
+    var stageScreen by int(QueleaPropertyKeys.stageScreenKey, -1)
 
     /**
      * The custom stage screen co-ordinates.
      */
     var stageCoords: Bounds
         get() {
-            val prop = getProperty(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
+            val prop = getString(QueleaPropertyKeys.stageCoordsKey, "0,0,0,0").javaTrim()
                 .split(",".toRegex()).dropLastWhile { it.isEmpty() }
             return BoundingBox(
                 prop[0].toInt().toDouble(),
@@ -873,8 +661,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
         }
         set(coords) {
             val rectStr =coords.toCommaString()
-            setProperty(QueleaPropertyKeys.stageCoordsKey, rectStr)
-            write()
+            this[QueleaPropertyKeys.stageCoordsKey]=rectStr
         }
 
     /**
@@ -884,22 +671,20 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * - false =  it's set to a screen number.
      */
     val isStageModeCoords: Boolean
-        get() = "coords" == getProperty(QueleaPropertyKeys.stageModeKey)
+        get() = "coords" == getStringOrNull(QueleaPropertyKeys.stageModeKey)
 
     /**
      * Set the stage mode to be manual co-ordinates.
      */
     fun setStageModeCoords() {
-        setProperty(QueleaPropertyKeys.stageModeKey, "coords")
-        write()
+        this[QueleaPropertyKeys.stageModeKey] = "coords"
     }
 
     /**
      * Set the stage mode to be a screen number.
      */
     fun setStageModeScreen() {
-        setProperty(QueleaPropertyKeys.stageModeKey, "screen")
-        write()
+        this[QueleaPropertyKeys.stageModeKey] = "screen"
     }
 
     /**
@@ -909,12 +694,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * preview window rather than displaying normally.
      */
 
-    var minLines: Int
-        get() = getProperty(QueleaPropertyKeys.minLinesKey, "10").toInt()
-        set(minLines) {
-            setProperty(QueleaPropertyKeys.minLinesKey, minLines.toString())
-            write()
-        }
+    var minLines by int(QueleaPropertyKeys.minLinesKey, 10)
 
     /**
      * Determine whether the single monitor warning should be shown (this warns
@@ -925,7 +705,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @return true if the warning should be shown, false otherwise.
      */
     fun showSingleMonitorWarning() =
-        getProperty(QueleaPropertyKeys.singleMonitorWarningKey, "true").toBoolean()
+        getBoolean(QueleaPropertyKeys.singleMonitorWarningKey, true)
 
     /**
      * Set whether the single monitor warning should be shown.
@@ -935,55 +715,51 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param val true if the warning should be shown, false otherwise.
      */
     fun setSingleMonitorWarning(value: Boolean) {
-        setProperty(QueleaPropertyKeys.singleMonitorWarningKey, value.toString())
-        write()
+        this[QueleaPropertyKeys.singleMonitorWarningKey] = value
     }
 
     /**
      * The URL to download Quelea.
      */
-    val downloadLocation: String
-        get() = "https://github.com/quelea-projection/Quelea/releases/"
+    val downloadLocation  = "https://github.com/quelea-projection/Quelea/releases/"
 
     /**
      * The URL to the Quelea website.
      */
-    val websiteLocation: String
-        get() = getProperty(QueleaPropertyKeys.websiteLocationKey, "http://www.quelea.org/")
+    val websiteLocation by string(QueleaPropertyKeys.websiteLocationKey, "http://www.quelea.org/")
 
     /**
      * The URL to the Quelea discussion forum.
      */
-    val discussLocation: String
-        get() = getProperty(QueleaPropertyKeys.discussLocationKey, "https://quelea.discourse.group/")
+    val discussLocation by string(
+        QueleaPropertyKeys.discussLocationKey, "https://quelea.discourse.group/"
+    )
 
     /**
      * The URL to the Quelea feedback form.
      */
-    val feedbackLocation: String
-        get() = getProperty(QueleaPropertyKeys.feedbackLocationKey, "https://quelea.org/feedback/")
+    val feedbackLocation: String by string(
+        QueleaPropertyKeys.feedbackLocationKey, "https://quelea.org/feedback/"
+    )
 
     /**
      * The URL used for checking the latest version.
      */
 
-    val updateURL: String
-        get() = "https://quelea-projection.github.io/changelog"
+    val updateURL: String = "https://quelea-projection.github.io/changelog"
 
 
     /**
      * Whether we should check for updates each time the program
      * starts.
      */
-    fun checkUpdate() =
-        getProperty(QueleaPropertyKeys.checkUpdateKey, "true").toBoolean()
+    fun checkUpdate() = getBoolean(QueleaPropertyKeys.checkUpdateKey, true)
 
     /**
      * Set whether we should check for updates each time the program starts.
      */
     fun setCheckUpdate(value: Boolean) {
-        setProperty(QueleaPropertyKeys.checkUpdateKey, value.toString())
-        write()
+        this[QueleaPropertyKeys.checkUpdateKey] = value
     }
 
 
@@ -995,8 +771,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      *
      * @return true if it should be a capital, false otherwise.
      */
-    fun checkCapitalFirst() : Boolean =
-        getProperty(QueleaPropertyKeys.capitalFirstKey, "false").toBoolean()
+    fun checkCapitalFirst() : Boolean = getBoolean(QueleaPropertyKeys.capitalFirstKey, false)
 
     /**
      * Set whether the first letter of all displayed lines should be a capital.
@@ -1006,8 +781,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param val true if it should be a capital, false otherwise.
      */
     fun setCapitalFirst(value: Boolean) {
-        setProperty(QueleaPropertyKeys.capitalFirstKey, value.toString())
-        write()
+        this[QueleaPropertyKeys.capitalFirstKey] =value.toString()
     }
 
     /**
@@ -1018,7 +792,7 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @return true if it should be a displayed, false otherwise.
      */
     fun checkDisplaySongInfoText(): Boolean =
-        getProperty(QueleaPropertyKeys.displaySonginfotextKey, "true").toBoolean()
+        getBoolean(QueleaPropertyKeys.displaySonginfotextKey, true)
 
     /**
      * Set whether the song info text should be displayed.
@@ -1028,61 +802,58 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param val true if it should be displayed, false otherwise.
      */
     fun setDisplaySongInfoText(value: Boolean) {
-        setProperty(QueleaPropertyKeys.displaySonginfotextKey, value.toString())
-        write()
+        this[QueleaPropertyKeys.displaySonginfotextKey] = value
     }
 
     /**
      * The default bible to use.
      */
-    val defaultBible: String?
-        get() = getProperty(QueleaPropertyKeys.defaultBibleKey)
+    val defaultBible: String? by nullableString(QueleaPropertyKeys.defaultBibleKey)
 
     /**
      * The default bible.
      */
     fun setDefaultBible(bible: Bible) {
-        setProperty(QueleaPropertyKeys.defaultBibleKey, bible.name)
-        write()
+        this[QueleaPropertyKeys.defaultBibleKey] = bible.name
     }
-
 
     /**
      * The colour used to display chords in stage view.
      */
     var stageChordColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.stageChordColorKey, "200,200,200"))
+        get() = getColor(getString(QueleaPropertyKeys.stageChordColorKey, "200,200,200"))
         set(color) {
-            setProperty(QueleaPropertyKeys.stageChordColorKey, color.getStr())
+            this[QueleaPropertyKeys.stageChordColorKey] = getStr(color)
         }
 
     /**
      * The colour used to display chords in stage view.
      */
     val textBackgroundColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.lyricsTextBackgroundColor))
+        get() = getColor(getStringOrNull(QueleaPropertyKeys.lyricsTextBackgroundColor)!!)
 
     /**
      * Whether to advance the schedule item when the current item is sent live.
      */
-    val textBackgroundEnable: Boolean
-        get() = getProperty(QueleaPropertyKeys.lyricsTextBackgroundEnable, "false").toBoolean()
+    val textBackgroundEnable: Boolean by boolean(
+        QueleaPropertyKeys.lyricsTextBackgroundEnable, false
+    )
 
     /**
      * The colour used to display lyrics in stage view.
      */
     var stageLyricsColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.stageLyricsColorKey, "255,255,255"))
+        get() = getColor(getString(QueleaPropertyKeys.stageLyricsColorKey, "255,255,255"))
         set(color) {
-            setProperty(QueleaPropertyKeys.stageLyricsColorKey, color.getStr())
+            this[QueleaPropertyKeys.stageLyricsColorKey] = getStr(color)
         }
     /**
      * The colour used for the background in stage view.
      */
     var stageBackgroundColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.stageBackgroundColorKey, "0,0,0"))
+        get() = getColor(getString(QueleaPropertyKeys.stageBackgroundColorKey, "0,0,0"))
         set(color) {
-            setProperty(QueleaPropertyKeys.stageBackgroundColorKey, color.getStr())
+            this[QueleaPropertyKeys.stageBackgroundColorKey] = getStr(color)
         }
 
     /**
@@ -1111,60 +882,45 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      *
      *
      *
-     * @param color the color to get as a string.
+     * @param this@getStr the color to get as a string.
      * @return the color as a string.
      */
-    @Deprecated("replace with color.getStr()", ReplaceWith("color.getStr()"))
-    fun getStr(color: Color)=color.getStr()
+    fun getStr(color: Color) =color.run { "$red,$green,$blue" }
+
 
     /**
      * The colour used to signify an active list.
      */
     val activeSelectionColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.activeSelectionColorKey, "30,160,225"))
+        get() = getColor(getString(QueleaPropertyKeys.activeSelectionColorKey, "30,160,225"))
 
     /**
      * The colour used to signify an active list.
      */
     val inactiveSelectionColor: Color
-        get() = getColor(getProperty(QueleaPropertyKeys.inactiveSelectionColorKey, "150,150,150"))
+        get() = getColor(getString(QueleaPropertyKeys.inactiveSelectionColorKey, "150,150,150"))
 
     /**
      * The thickness (px) of the outline to use for displaying the text.
      */
-    var outlineThickness: Int
-        get() = getProperty(QueleaPropertyKeys.outlineThicknessKey, "2").toInt()
-        set(px) {
-            setProperty(QueleaPropertyKeys.outlineThicknessKey, px.toString())
-            write()
-        }
+    var outlineThickness by int(QueleaPropertyKeys.outlineThicknessKey, 2)
 
     /**
      * The notice box height (px).
      */
-    var noticeBoxHeight: Int
-        get() = getProperty(QueleaPropertyKeys.noticeBoxHeightKey, "40").toInt()
-        set(height) {
-            setProperty(QueleaPropertyKeys.noticeBoxHeightKey, height.toString())
-            write()
-        }
+    var noticeBoxHeight by int(QueleaPropertyKeys.noticeBoxHeightKey, 40)
 
     /**
      * The notice box speed.
      */
-    var noticeBoxSpeed: Int
-        get() = getProperty(QueleaPropertyKeys.noticeBoxSpeedKey, "8").toInt()
-        set(speed) {
-            setProperty(QueleaPropertyKeys.noticeBoxSpeedKey, speed.toString())
-            write()
-        }
+    var noticeBoxSpeed by int(QueleaPropertyKeys.noticeBoxSpeedKey, 8)
 
     /**
      * Words auto-capitalized by the song importer when deciding how to un-caps-lock a line of text.
      * seperated by commas  in the properties file
      */
     val godWords: Array<String>
-        get() = getProperty(
+        get() = getString(
             QueleaPropertyKeys.godWordsKey,
             "god,God,jesus,Jesus,christ,Christ,you,You,he,He,lamb,Lamb,"
                     + "lord,Lord,him,Him,son,Son,i,I,his,His,your,Your,king,King,"
@@ -1175,107 +931,61 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
     /**
      * Determine whether to advance the schedule item when the current item is sent live.
      */
-    var advanceOnLive: Boolean
-        get() = getProperty(QueleaPropertyKeys.advanceOnLiveKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.advanceOnLiveKey, value.toString())
-            write()
-        }
+    var advanceOnLive by boolean(QueleaPropertyKeys.advanceOnLiveKey, false)
 
     /**
      * Whether to preview the schedule item when the background image
      * has been updated.
      */
-    var previewOnImageUpdate: Boolean
-        get() = getProperty(QueleaPropertyKeys.previewOnImageChangeKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.previewOnImageChangeKey, value.toString())
-            write()
-        }
+    var previewOnImageUpdate by boolean(QueleaPropertyKeys.previewOnImageChangeKey, false)
 
     /**
      * Whether to use openoffice for presentations.
      * - true if we should use openoffice
      * - false if we should use basic POI images
      */
-    var useOO: Boolean
-        get() = getProperty(QueleaPropertyKeys.useOoKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.useOoKey, value.toString())
-            write()
-        }
+    var useOO by boolean(QueleaPropertyKeys.useOoKey, false)
 
     /**
      * The path to the openoffice installation on this machine.
      */
-    var oOPath: String?
-        get() = getProperty(QueleaPropertyKeys.ooPathKey, "")
-        set(path) {
-            setProperty(QueleaPropertyKeys.ooPathKey, path)
-            write()
-        }
+    var oOPath by string(QueleaPropertyKeys.ooPathKey, "")
 
     /**
      * Whether to use PowerPoint for presentations.
      * - true if we should use PowerPoint
      * - false if we should just use the basic POI images or openoffice.
      */
-    var usePP: Boolean
-        get() = getProperty(QueleaPropertyKeys.usePpKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.usePpKey, value.toString())
-            write()
-        }
+    var usePP by boolean(QueleaPropertyKeys.usePpKey, false)
 
     /**
      * The path to the PowerPoint installation on this machine.
      */
-    var pPPath: String?
-        get() = getProperty(QueleaPropertyKeys.ppPathKey, "")
-        set(path) {
-            setProperty(QueleaPropertyKeys.ppPathKey, path)
-            write()
-        }
+    var pPPath by string(QueleaPropertyKeys.ppPathKey, "")
 
     /**
      * The path to the desired directory for recordings.
      */
-    var recordingsPath: String?
-        get() = getProperty(QueleaPropertyKeys.recPathKey, "")
-        set(path) {
-            setProperty(QueleaPropertyKeys.recPathKey, path)
-            write()
-        }
+    var recordingsPath by string(QueleaPropertyKeys.recPathKey, "")
 
     /**
      * The path to the desired directory for downloading.
      */
-    var downloadPath: String?
-        get() = getProperty(QueleaPropertyKeys.downloadPathKey, "")
-        set(path) {
-            setProperty(QueleaPropertyKeys.downloadPathKey, path)
-            write()
-        }
+    var downloadPath by string(QueleaPropertyKeys.downloadPathKey, "")
 
     /**
      * Whether to automatically convert the recordings to MP3 files.
      * - true to convert to MP3
      * - false to just store recordings as WAV files.
      */
-    var convertRecordings: Boolean
-        get() = getProperty(QueleaPropertyKeys.convertMp3Key, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.convertMp3Key, value.toString())
-            write()
-        }
+    var convertRecordings by boolean(QueleaPropertyKeys.convertMp3Key, false)
 
     /**
      * Whether the OO presentation should be always on top or not.
      * _Not user controlled, but useful for testing._
      */
 
-    val oOPresOnTop: Boolean
-        get() = getProperty(QueleaPropertyKeys.ooOntopKey, "true").toBoolean()
+    val oOPresOnTop by boolean(QueleaPropertyKeys.ooOntopKey, true)
 
     /**
      * Sets the logo image location for persistent use
@@ -1285,206 +995,111 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      * @param location File location
      */
     fun setLogoImage(location: String?) {
-        setProperty(QueleaPropertyKeys.logoImageLocationKey, location)
-        write()
+        this[QueleaPropertyKeys.logoImageLocationKey] = location
     }
 
     /**
      * The location of the logo image
      */
     val logoImageURI: String
-        get() = "file:" + getProperty(QueleaPropertyKeys.logoImageLocationKey, "icons/logo default.png")
+        get() = "file:" + getString(QueleaPropertyKeys.logoImageLocationKey, "icons/logo default.png")
 
     /**
      * The port used for mobile lyrics display.
      */
-    var mobLyricsPort: Int
-        get() = getProperty(QueleaPropertyKeys.mobLyricsPortKey, "1111").toInt()
-        set(port) {
-            setProperty(QueleaPropertyKeys.mobLyricsPortKey, port.toString())
-            write()
-        }
+    var mobLyricsPort by int(QueleaPropertyKeys.mobLyricsPortKey, 1111)
 
     /**
      * Whether we should use mobile lyrics.
      */
-    var useMobLyrics: Boolean
-        get() = getProperty(QueleaPropertyKeys.useMobLyricsKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.useMobLyricsKey, value.toString())
-            write()
-        }
+    var useMobLyrics by boolean(QueleaPropertyKeys.useMobLyricsKey, false)
 
     /**
      * Whether we should set up remote control server.
      */
-    var useRemoteControl: Boolean
-        get() = getProperty(QueleaPropertyKeys.useRemoteControlKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.useRemoteControlKey, value.toString())
-            write()
-        }
+    var useRemoteControl by boolean(QueleaPropertyKeys.useRemoteControlKey, false)
 
     /**
      * The port used for remote control server.
      */
     var remoteControlPort: Int
         get() = try {
-            getProperty(QueleaPropertyKeys.remoteControlPortKey, "1112").toInt()
+            getInt(QueleaPropertyKeys.remoteControlPortKey, 1112)
         } catch (e: NumberFormatException) {
             1112
         }
         set(port) {
-            setProperty(QueleaPropertyKeys.remoteControlPortKey, port.toString())
-            write()
+            this[QueleaPropertyKeys.remoteControlPortKey] = port
         }
 
-    var remoteControlPassword: String?
-        get() = getProperty(QueleaPropertyKeys.remoteControlPasswordKey, "quelea")
-        set(text) {
-            setProperty(QueleaPropertyKeys.remoteControlPasswordKey, text)
-            write()
-        }
-    var planningCenterRefreshToken: String?
-        get() = getProperty(QueleaPropertyKeys.planningCenterRefreshToken, null)
-        set(text) {
-            setProperty(QueleaPropertyKeys.planningCenterRefreshToken, text)
-            write()
-        }
-    var smallSongTextPositionH: String?
-        get() = getProperty(QueleaPropertyKeys.smallSongTextHPositionKey, "right")
-        set(position) {
-            setProperty(QueleaPropertyKeys.smallSongTextHPositionKey, position)
-            write()
-        }
-    var smallSongTextPositionV: String?
-        get() = getProperty(QueleaPropertyKeys.smallSongTextVPositionKey, "bottom")
-        set(position) {
-            setProperty(QueleaPropertyKeys.smallSongTextVPositionKey, position)
-            write()
-        }
-    var smallSongTextSize: Double
-        get() = getProperty(QueleaPropertyKeys.smallSongTextSizeKey, "0.1").toDouble()
-        set(size) {
-            setProperty(QueleaPropertyKeys.smallSongTextSizeKey, size.toString())
-            write()
-        }
-    var smallBibleTextPositionH: String?
-        get() = getProperty(QueleaPropertyKeys.smallBibleTextHPositionKey, "right")
-        set(position) {
-            setProperty(QueleaPropertyKeys.smallBibleTextHPositionKey, position)
-            write()
-        }
-    var smallBibleTextPositionV: String?
-        get() = getProperty(QueleaPropertyKeys.smallBibleTextVPositionKey, "bottom")
-        set(position) {
-            setProperty(QueleaPropertyKeys.smallBibleTextVPositionKey, position)
-            write()
-        }
-    var smallBibleTextSize: Double
-        get() = getProperty(QueleaPropertyKeys.smallBibleTextSizeKey, "0.1").toDouble()
-        set(size) {
-            setProperty(QueleaPropertyKeys.smallBibleTextSizeKey, size.toString())
-            write()
-        }
-    var smallSongTextShow: Boolean
-        get() = getProperty(QueleaPropertyKeys.showSmallSongTextKey, "true").toBoolean()
-        set(show) {
-            setProperty(QueleaPropertyKeys.showSmallSongTextKey, show.toString())
-            write()
-        }
-    var smallBibleTextShow: Boolean
-        get() = getProperty(QueleaPropertyKeys.showSmallBibleTextKey, "true").toBoolean()
-        set(show) {
-            setProperty(QueleaPropertyKeys.showSmallBibleTextKey, show.toString())
-            write()
-        }
+    var remoteControlPassword by string(QueleaPropertyKeys.remoteControlPasswordKey, "quelea")
+
+    var planningCenterRefreshToken by nullableString(QueleaPropertyKeys.planningCenterRefreshToken)
+
+    var smallSongTextPositionH by string(QueleaPropertyKeys.smallSongTextHPositionKey, "right")
+    var smallSongTextPositionV by string(QueleaPropertyKeys.smallSongTextVPositionKey, "bottom")
+    var smallSongTextSize by double(QueleaPropertyKeys.smallSongTextSizeKey, 0.1)
+    var smallBibleTextPositionH by string(QueleaPropertyKeys.smallBibleTextHPositionKey, "right")
+    var smallBibleTextPositionV by string(QueleaPropertyKeys.smallBibleTextVPositionKey, "bottom")
+    var smallBibleTextSize by double(QueleaPropertyKeys.smallBibleTextSizeKey, 0.1)
+    var smallSongTextShow by boolean(QueleaPropertyKeys.showSmallSongTextKey, true)
+    var smallBibleTextShow by boolean(QueleaPropertyKeys.showSmallBibleTextKey, true)
 
     /**
      * Maximum number to show per slide
      * (depends on use.max.bible.verses)
      */
 
-    var maxBibleVerses: Int
-        get() = getProperty(QueleaPropertyKeys.maxBibleVersesKey, "5").toInt()
-        set(number) {
-            setProperty(QueleaPropertyKeys.maxBibleVersesKey, number.toString())
-            write()
-        }
+    var maxBibleVerses by int(QueleaPropertyKeys.maxBibleVersesKey, 5)
 
     /**
      * Whether the max items is verses or words
      * - true if using maximum verses per slide
      */
-    var bibleUsingMaxChars: Boolean
-        get() = getProperty(QueleaPropertyKeys.useMaxBibleCharsKey, "true").toBoolean()
-        set(useChars) {
-            setProperty(QueleaPropertyKeys.useMaxBibleCharsKey, useChars.toString())
-            write()
-        }
+    var bibleUsingMaxChars by boolean(QueleaPropertyKeys.useMaxBibleCharsKey, true)
 
     /**
      * The maximum number of characters allowed on any one line of bible text.
      */
-    var maxBibleChars: Int
-        get() = getProperty(QueleaPropertyKeys.maxBibleCharsKey, "80").toInt()
-        set(maxChars) {
-            setProperty(QueleaPropertyKeys.maxBibleCharsKey, maxChars.toString())
-            write()
+    var maxBibleChars by int(QueleaPropertyKeys.maxBibleCharsKey, 80)
+
+
+    private fun getFadeDuration(key: String): Int {
+        var t = getString(key, "")
+        if (t == "") {
+            t = "1000"
+            this[key] = t
         }
+        return t.toInt()
+    }
 
     /**
      * The fade duration (ms) of the logo button text.
      */
     val logoFadeDuration: Int
-        get() {
-            var t = getProperty(QueleaPropertyKeys.logoFadeDurationKey, "")
-            if (t == "") {
-                t = "1000"
-                setProperty(QueleaPropertyKeys.logoFadeDurationKey, t)
-                write()
-            }
-            return t.toInt()
-        }
+        get() = getFadeDuration(QueleaPropertyKeys.logoFadeDurationKey)
 
     /**
      * The fade duration (ms) of the black button text.
      */
     val blackFadeDuration: Int
-        get() {
-            var t = getProperty(QueleaPropertyKeys.blackFadeDurationKey, "")
-            if (t == "") {
-                t = "1000"
-                setProperty(QueleaPropertyKeys.blackFadeDurationKey, t)
-                write()
-            }
-            return t.toInt()
-        }
+        get() = getFadeDuration(QueleaPropertyKeys.blackFadeDurationKey)
 
     /**
      * The fade duration (ms) of the clear button text.
      */
     val clearFadeDuration: Int
-        get() {
-            var t = getProperty(QueleaPropertyKeys.clearFadeDurationKey, "")
-            if (t == "") {
-                t = "1000"
-                setProperty(QueleaPropertyKeys.clearFadeDurationKey, t)
-                write()
-            }
-            return t.toInt()
-        }
+        get() = getFadeDuration(QueleaPropertyKeys.clearFadeDurationKey)
 
     /**
      * The Translate ID from the properties file
      */
     val translateClientID: String
         get() {
-            var t = getProperty(QueleaPropertyKeys.translateClientIdKey, "")
+            var t = getString(QueleaPropertyKeys.translateClientIdKey, "")
             if (t == "") {
                 t = "quelea-projection"
-                setProperty(QueleaPropertyKeys.translateClientIdKey, t)
-                write()
+                this[QueleaPropertyKeys.translateClientIdKey] = t
             }
             return t
         }
@@ -1495,204 +1110,153 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
      */
     val translateClientSecret: String
         get() {
-            var t = getProperty(QueleaPropertyKeys.translateClientSecretKey, "")
+            var t = getString(QueleaPropertyKeys.translateClientSecretKey, "")
             if (t == "") {
                 t = "wk4+wd9YJkjIHmz2qwD1oR7pP9/kuHOL6OsaOKEi80U="
-                setProperty(QueleaPropertyKeys.translateClientSecretKey, t)
-                write()
+                this[QueleaPropertyKeys.translateClientSecretKey] = t
             }
             return t
         }
 
-    var clearStageWithMain: Boolean
-        get() = getProperty(QueleaPropertyKeys.clearStageviewWithMainKey, "true").toBoolean()
-        set(clear) {
-            setProperty(QueleaPropertyKeys.clearStageviewWithMainKey, clear.toString())
-            write()
-        }
+    var clearStageWithMain by boolean(QueleaPropertyKeys.clearStageviewWithMainKey, true)
 
     /**
      * The directory used for storing countdown timers.
      */
     val timerDir: File
         get() = File(queleaUserHome, "timer")
-    var songOverflow: Boolean
-        get() = getProperty(QueleaPropertyKeys.songOverflowKey, "false").toBoolean()
-        set(overflow) {
-            setProperty(QueleaPropertyKeys.songOverflowKey, overflow.toString())
-            write()
-        }
-    val autoDetectPort: Int
-        get() = getProperty(QueleaPropertyKeys.autoDetectPortKey, "50015").toInt()
-    val stageShowClock: Boolean
-        get() = getProperty(QueleaPropertyKeys.stageShowClockKey, "true").toBoolean()
-    var use24HourClock: Boolean
-        get() = getProperty(QueleaPropertyKeys.use24hClockKey, "true").toBoolean()
-        set(s24h) {
-            setProperty(QueleaPropertyKeys.use24hClockKey, s24h.toString())
-            write()
-        }
-    var bibleSplitVerses: Boolean
-        get() = getProperty(QueleaPropertyKeys.splitBibleVersesKey, "false").toBoolean()
-        set(selected) {
-            setProperty(QueleaPropertyKeys.splitBibleVersesKey, selected.toString())
-            write()
-        }
-    val lyricWidthBounds: Double
-        get() = getProperty(QueleaPropertyKeys.lyricWidthBoundKey, "0.92").toDouble()
-    val lyricHeightBounds: Double
-        get() = getProperty(QueleaPropertyKeys.lyricHeightBoundKey, "0.9").toDouble()
-    var defaultSongDBUpdate: Boolean
-        get() = getProperty(QueleaPropertyKeys.defaultSongDbUpdateKey, "true").toBoolean()
-        set(updateInDB) {
-            setProperty(QueleaPropertyKeys.defaultSongDbUpdateKey, updateInDB.toString())
-            write()
-        }
-    var showDBSongPreview: Boolean
-        get() = getProperty(QueleaPropertyKeys.dbSongPreviewKey, "false").toBoolean()
-        set(value) {
-            setProperty(QueleaPropertyKeys.dbSongPreviewKey, value.toString())
-        }
-    var immediateSongDBPreview: Boolean
-        get() = getProperty("db.song.immediate.preview", "false").toBoolean()
-        set(value) {
-            setProperty("db.song.immediate.preview", value.toString())
-        }
-    val webDisplayableRefreshRate: Int
-        get() = getProperty(QueleaPropertyKeys.webRefreshRateKey, "500").toInt()
-    val webProxyHost: String?
-        get() = getProperty(QueleaPropertyKeys.webProxyHostKey, null)
-    val webProxyPort: String?
-        get() = getProperty(QueleaPropertyKeys.webProxyPortKey, null)
-    val webProxyUser: String?
-        get() = getProperty(QueleaPropertyKeys.webProxyUserKey, null)
-    val webProxyPassword: String?
-        get() = getProperty(QueleaPropertyKeys.webProxyPasswordKey, null)
-    val churchCcliNum: String?
-        get() = getProperty(QueleaPropertyKeys.churchCcliNumKey, null)
+
+    var songOverflow by boolean(QueleaPropertyKeys.songOverflowKey, false)
+
+    val autoDetectPort by int(QueleaPropertyKeys.autoDetectPortKey, 50015)
+    val stageShowClock by boolean(QueleaPropertyKeys.stageShowClockKey, true)
+    var use24HourClock by boolean(QueleaPropertyKeys.use24hClockKey, true)
+    var bibleSplitVerses by boolean(QueleaPropertyKeys.splitBibleVersesKey, false)
+    val lyricWidthBounds by double(QueleaPropertyKeys.lyricWidthBoundKey, 0.92)
+    val lyricHeightBounds by double(QueleaPropertyKeys.lyricHeightBoundKey, 0.9)
+    var defaultSongDBUpdate by boolean(QueleaPropertyKeys.defaultSongDbUpdateKey, true)
+    var showDBSongPreview by boolean(QueleaPropertyKeys.dbSongPreviewKey, false)
+
+    var immediateSongDBPreview by boolean("db.song.immediate.preview",false)
+
+    val webDisplayableRefreshRate by int(QueleaPropertyKeys.webRefreshRateKey, 500)
+    val webProxyHost by nullableString(QueleaPropertyKeys.webProxyHostKey)
+    val webProxyPort by nullableString(QueleaPropertyKeys.webProxyPortKey)
+    val webProxyUser by nullableString(QueleaPropertyKeys.webProxyUserKey)
+    val webProxyPassword by nullableString(QueleaPropertyKeys.webProxyPasswordKey)
+    val churchCcliNum by nullableString(QueleaPropertyKeys.churchCcliNumKey)
 
     /**
      * The directory used for storing notices.
      */
     val noticeDir: File
         get() = File(queleaUserHome, "notices")
+    private fun getKeyBinding(key : String, default: String) =
+        getString(key, default)
+            .split(",".toRegex())
+            .dropLastWhile { it.isEmpty() }
+            .toTypedArray()
+
+
     val newSongKeys: Array<String>
-        get() = getProperty("new.song.keys", "Ctrl,Alt,N")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("new.song.keys", "Ctrl,Alt,N")
+
     val searchKeys: Array<String>
-        get() = getProperty("search.keys", "Ctrl,L")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("search.keys", "Ctrl,L")
+
     val optionsKeys: Array<String>
-        get() = getProperty("options.keys", "Shortcut,T")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("options.keys", "Shortcut,T")
+
     val liveTextKeys: Array<String>
-        get() = getProperty("live.text.keys", "Shortcut,Shift,L")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("live.text.keys", "Shortcut,Shift,L")
+
     val logoKeys: Array<String>
-        get() = getProperty("logo.keys", "F5")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("logo.keys", "F5")
+
     val blackKeys: Array<String>
-        get() = getProperty("black.keys", "F6")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() =getKeyBinding("black.keys", "F6")
+
     val clearKeys: Array<String>
-        get() = getProperty("clear.keys", "F7")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("clear.keys", "F7")
+
     val hideKeys: Array<String>
-        get() = getProperty("hide.keys", "F8")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("hide.keys", "F8")
+
     val advanceKeys: Array<String>
-        get() = getProperty("advance.keys", "Page Down")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("advance.keys", "Page Down")
+
     val previousKeys: Array<String>
-        get() = getProperty("previous.keys", "Page Up")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("previous.keys", "Page Up")
+
     val noticesKeys: Array<String>
-        get() = getProperty("notices.keys", "Ctrl,M")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("notices.keys", "Ctrl,M")
+
     val scheduleFocusKeys: Array<String>
-        get() = getProperty("schedule.focus.keys", "Ctrl,D")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("schedule.focus.keys", "Ctrl,D")
+
     val bibleFocusKeys: Array<String>
-        get() = getProperty("bible.focus.keys", "Ctrl,B")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .toTypedArray()
+        get() = getKeyBinding("bible.focus.keys", "Ctrl,B")
 
     /**
      * Whether fade should be used.
      */
-    var useSlideTransition: Boolean
-        get() = getProperty(QueleaPropertyKeys.useSlideTransitionKey, "false").toBoolean()
-        set(useFade) {
-            setProperty(QueleaPropertyKeys.useSlideTransitionKey, useFade.toString())
-        }
+    var useSlideTransition by boolean(QueleaPropertyKeys.useSlideTransitionKey, false)
     /**
      * The slide fade-in effect in duration (ms).
      */
-    var slideTransitionInDuration: Int
-        get() = getProperty(QueleaPropertyKeys.slideTransitionInDurationKey, "750").toInt()
-        set(millis) {
-            setProperty(QueleaPropertyKeys.slideTransitionInDurationKey, millis.toString())
-        }
+    var slideTransitionInDuration by int(QueleaPropertyKeys.slideTransitionInDurationKey, 750)
 
     /**
      * The slide fade-out effect in duration (ms).
      */
-    var slideTransitionOutDuration: Int
-        get() = getProperty(QueleaPropertyKeys.slideTransitionOutDurationKey, "400").toInt()
-        set(millis) {
-            setProperty(QueleaPropertyKeys.slideTransitionOutDurationKey, millis.toString())
-        }
-    var useDarkTheme: Boolean
-        get() = getProperty(QueleaPropertyKeys.darkThemeKey, "false").toBoolean()
-        set(useDarkTheme) {
-            setProperty(QueleaPropertyKeys.darkThemeKey, useDarkTheme.toString())
-        }
+    var slideTransitionOutDuration by int(QueleaPropertyKeys.slideTransitionOutDurationKey, 400)
+    var useDarkTheme by boolean(QueleaPropertyKeys.darkThemeKey, false)
+
+
+    fun setProperty(key : String, value : String) {
+        this[key] = value
+    }
+    fun getProperty(key: String): String? = getStringOrNull(key)
+
 
     companion object {
         @JvmField
         val VERSION = Version("2022.0", VersionType.CI)
         private var INSTANCE: QueleaProperties? = null
 
-        @JvmStatic
-        fun init(userHome: String?) {
-            INSTANCE = QueleaProperties(userHome)
-            try {
-                if (!get()!!.propFile.exists()) {
-                    get()!!.propFile.createNewFile()
+        private fun resolveQueleaDir(userHome: String?): File {
+            val home =  userHome
+                .takeUnless { it.isNullOrEmpty() }
+                ?: requireNotNull(System.getProperty("user.home")){
+                    "user.home is not set"
                 }
-                Utils.getTextFromFile(get()!!.propFile.absolutePath, "")
-                    .reader().use { reader ->
-                        get()!!.load(reader)
-                    }
-            } catch (ex: IOException) { //Never mind.
-            }
+            return File(File(home), ".quelea")
         }
 
+        @JvmStatic
+        fun init(userHome: String?) {
+            val queleaUserHome = resolveQueleaDir(userHome)
+            queleaUserHome.createNewFile()
+
+            val settings = File(queleaUserHome, "quelea.properties")
+                .loadPropertySettings()
+
+            INSTANCE = QueleaProperties(
+                settings,
+                queleaUserHome
+            )
+        }
+
+        @JvmStatic
+        fun init(userHome: String?, settings: Settings) {
+            val queleaUserHome = resolveQueleaDir(userHome)
+            queleaUserHome.createNewFile()
+
+            INSTANCE = QueleaProperties(
+                settings,
+                queleaUserHome
+            )
+        }
         /**
          * Get the singleton instance of this class.
          *
@@ -1701,16 +1265,31 @@ internal class QueleaProperties private constructor(userHome: String?) : SortedP
          * @return the instance.
          */
         @JvmStatic
-        fun get(): QueleaProperties? = INSTANCE
+        fun get(): QueleaProperties = INSTANCE!!
     }
 }
 
-/**
- * Get a color value as a string.
- *
- *
- *
- * @param color the color to get as a string.
- * @return the color as a string.
- */
-fun Color.getStr(): String ="$red,$green,$blue"
+fun File.loadPropertySettings(): Settings {
+    val props = Properties()
+    try {
+        createNewFile()
+        readText().reader().use(props::load)
+    } catch (ex: IOException) { /* no-op */ }
+
+    return PropertiesSettings(props){props->
+        try {
+            writer().use {
+                props.sorted().store(it, "Auto save")
+            }
+        } catch (e : IOException) {
+//            LOGGER.log(Level.WARNING, "Couldn't store properties", ex);
+        }
+    }
+}
+
+private fun Properties.sorted(): Properties {
+    val sortedMap = toSortedMap(compareBy { it.toString() })
+    val sortedProps = Properties()
+    sortedProps.putAll(sortedMap)
+    return sortedProps
+}
