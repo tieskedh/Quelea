@@ -13,6 +13,7 @@ plugins {
     id 'edu.sc.seis.launch4j' version '2.4.6'
     id 'com.github.ben-manes.versions' version '0.39.0'
     id 'com.bmuschko.izpack' version '3.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.9.20-Beta2'
 }
 
 configurations.all {
@@ -244,6 +245,7 @@ dependencies {
 
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.8.2'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 jar {
@@ -258,4 +260,9 @@ jar {
 task releaseSummary(type:JavaExec) {
     mainClass = 'org.quelea.services.utils.ReleaseSummaryGenerator'
     classpath = sourceSets.main.runtimeClasspath
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
