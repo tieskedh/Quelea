@@ -91,7 +91,7 @@ public class MainPanel extends BorderPane {
         double mainPos = QueleaProperties.get().getMainDivPos();
         double prevLivePos = QueleaProperties.get().getPrevLiveDivPos();
         double canvasPos = QueleaProperties.get().getCanvasDivPos();
-        double previewPos = QueleaProperties.get().getPreviewDivposKey();
+        double previewPos = QueleaProperties.get().getPreviewDivPosKey();
         double libraryPos = QueleaProperties.get().getLibraryDivPos();
         if (prevLivePos != -1 && mainPos != -1) {
             mainSplit.setDividerPositions(mainPos, prevLivePos);
