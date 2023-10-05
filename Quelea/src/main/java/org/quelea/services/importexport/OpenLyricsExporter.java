@@ -44,11 +44,12 @@ import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import tornadofx.FX;
 
 /**
  * An exporter for the openlyrics format.
@@ -80,7 +81,7 @@ public class OpenLyricsExporter implements Exporter {
     @Override
     public void exportSongs(final File file, List<SongDisplayable> songDisplayables) {
         final List<SongDisplayable> songDisplayablesThreadSafe = new ArrayList<>(songDisplayables);
-        final StatusPanel panel = QueleaApp.get().getMainWindow().getMainPanel().getStatusPanelGroup().addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
+        final StatusPanel panel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
         new Thread() {
             public void run() {
                 try {

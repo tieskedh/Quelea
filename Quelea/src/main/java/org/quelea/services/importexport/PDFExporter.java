@@ -32,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.stage.FileChooser;
+import kotlin.text.Charsets;
 import org.javafx.dialog.Dialog;
 import org.quelea.data.displayable.SongDisplayable;
 import org.quelea.services.languages.LabelGrabber;
@@ -39,8 +40,9 @@ import org.quelea.services.print.SongPDFPrinter;
 import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * An exporter for the PDF format.
@@ -85,12 +87,12 @@ public class PDFExporter implements Exporter {
                 printChords = false;
             }
         }).build().showAndWait();
-        final StatusPanel panel = QueleaApp.get().getMainWindow().getMainPanel().getStatusPanelGroup().addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
+        final StatusPanel panel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
         final List<SongDisplayable> songDisplayablesThreadSafe = new ArrayList<>(songDisplayables);
         new Thread() {
             public void run() {
                 final HashSet<String> names = new HashSet<>();
-                try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(file), Charset.forName("UTF-8"))) {
+                try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(file), Charsets.UTF_8)) {
                     for (int i = 0; i < songDisplayablesThreadSafe.size(); i++) {
                         SongDisplayable song = songDisplayablesThreadSafe.get(i);
                         String name = sanitise(song.getTitle()) + ".pdf";

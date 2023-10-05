@@ -24,8 +24,9 @@ import javafx.event.EventHandler;
 import org.quelea.data.db.SongManager;
 import org.quelea.data.displayable.SongDisplayable;
 import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * A dialog used for selecting the songs to be entered into the database after
@@ -59,7 +60,7 @@ public class SelectImportedSongsDialog extends SelectSongsDialog {
                             public void run() {
                                 hide();
                                 getAddButton().setDisable(false);
-                                statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("importing.status"));
+                                statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("importing.status"));
                                 statusPanel.removeCancelButton();
                             }
                         });

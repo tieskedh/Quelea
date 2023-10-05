@@ -34,8 +34,9 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import org.quelea.data.displayable.SongDisplayable;
 import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * A song pack that contains a number of songs and can be written to a
@@ -104,7 +105,7 @@ public class SongPack {
             return;
         }
 
-        final StatusPanel panel = QueleaApp.get().getMainWindow().getMainPanel().getStatusPanelGroup().addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
+        final StatusPanel panel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
         final List<SongDisplayable> songDisplayablesThreadSafe = new ArrayList<>(songs);
         new Thread() {
             public void run() {

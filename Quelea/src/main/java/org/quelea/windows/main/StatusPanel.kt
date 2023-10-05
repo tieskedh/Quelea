@@ -15,144 +15,119 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main;
+package org.quelea.windows.main
 
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import org.quelea.services.utils.Utils;
+import javafx.application.Platform
+import javafx.geometry.Insets
+import javafx.geometry.Pos
+import javafx.scene.control.Button
+import javafx.scene.control.Label
+import javafx.scene.control.ProgressBar
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.Priority
+import org.quelea.services.utils.Utils
+import tornadofx.*
+
 
 /**
  * A status panel that denotes a background task in Quelea.
- * <p/>
+ *
+ *
  * @author Michael
+ *
+ * @constructor Create a new status panel.
+ * @param labelText the text to put on the label on this panel.
+ * @param index the index of this panel on the group.
+ *
  */
-public class StatusPanel extends HBox {
-
-    private ProgressBar progressBar;
-    private Label label;
-    private Button cancelButton;
-    private StatusPanelGroup group;
-    private int index;
+class StatusPanel(
+    labelText: String,
+    private val index: Int,
+    private val onDone : () -> Unit
+) : Fragment() {
 
     /**
-     * Create a new status panel.
-     * <p/>
-     * @param group the group this panel is part of.
-     * @param labelText the text to put on the label on this panel.
-     * @param index the index of this panel on the group.
+     * Get the progress bar associated with this panel.
+     *
+     *
+     * @return the progress bar associated with this panel.
      */
-    StatusPanel(StatusPanelGroup group, String labelText, int index) {
-        setAlignment(Pos.CENTER);
-        setSpacing(5);
-        this.group = group;
-        this.index = index;
-        label = new Label(labelText);
-        label.setAlignment(Pos.CENTER);
-        label.setMaxHeight(Double.MAX_VALUE);
-        HBox.setMargin(label, new Insets(5));
-        progressBar = new ProgressBar();
-        progressBar.setMaxWidth(Double.MAX_VALUE); //Allow progress bar to fill space.
-        HBox.setHgrow(progressBar, Priority.ALWAYS);
-        cancelButton = new Button("", new ImageView(new Image("file:icons/cross.png", 13, 13, false, true)));
-        Utils.setToolbarButtonStyle(cancelButton);
-        cancelButton.setAlignment(Pos.CENTER);
-        getChildren().add(label);
-        getChildren().add(progressBar);
-        getChildren().add(cancelButton);
-    }
-    
+    lateinit var progressBar: ProgressBar
+    private lateinit var label: Label
+
+    /**
+     * Get the cancel button on this panel.
+     *
+     *
+     * @return the cancel button on this panel.
+     */
+    lateinit var cancelButton: Button
+
     /**
      * Remove the cancel button from this status bar.
      */
-    public void removeCancelButton() {
-        getChildren().remove(cancelButton);
+    fun removeCancelButton() {
+        root.children.remove(cancelButton)
     }
-    
-    /**
-     * Convenience method to set the progress of the progress bar. Thread safe.
-     * @param progress the progress to set the bar to, between 0-1.
-     */
-    public void setProgress(final double progress) {
-        Platform.runLater(new Runnable() {
 
-            @Override
-            public void run() {
-                progressBar.setProgress(progress);
-            }
-        });
-    }
-    
-    private double progressVal = 0;
+    private val labelTextProp = stringProperty(labelText)
     /**
-     * Convenience method to get the current progress. Thread safe.
-     * @return the current progress.
+     * The label text for this panel.
      */
-    public double getProgress() {
-        progressVal = 0;
-        Utils.fxRunAndWait(new Runnable() {
+    var labelText by labelTextProp
 
-            @Override
-            public void run() {
-                progressVal = progressBar.getProgress();
+
+
+    private var progressVal = 0.0
+
+    override val root = hbox(
+        spacing = 5,
+        alignment = Pos.CENTER
+    ) {
+        label = label(labelTextProp){
+            hboxConstraints {
+                margin = Insets(5.0)
             }
-        });
-        return progressVal;
+        }
+        progressBar = progressbar {
+            maxWidth = Double.MAX_VALUE
+            hgrow = Priority.ALWAYS
+        }
+        cancelButton = button(
+            graphic = ImageView(Image("file:icons/cross.png", 13.0, 13.0, false, true))
+        ){
+            alignment=Pos.CENTER
+            Utils.setToolbarButtonStyle(this)
+        }
     }
+
+    /**
+     * The current progress of the progress bar between 0-1. Thread safe.
+     */
+    var progress: Double
+        get() {
+            progressVal = 0.0
+            Utils.fxRunAndWait { progressVal = progressBar.progress }
+            return progressVal
+        }
+        set(progress) {
+            Platform.runLater { progressBar.progress = progress }
+        }
 
     /**
      * Called to indicate that the task associated with this panel has finished,
      * and therefore the panel can be removed.
      */
-    public void done() {
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                group.removePanel(index);
-            }
-        });
-    }
-
-    /**
-     * Set the label text for this panel.
-     * <p/>
-     * @param text the text on this panel's label.
-     */
-    public void setLabelText(String text) {
-        label.setText(text);
-    }
-
-    /**
-     * Get the progress bar associated with this panel.
-     * <p/>
-     * @return the progress bar associated with this panel.
-     */
-    public ProgressBar getProgressBar() {
-        return progressBar;
-    }
-
-    /**
-     * Get the cancel button on this panel.
-     * <p/>
-     * @return the cancel button on this panel.
-     */
-    public Button getCancelButton() {
-        return cancelButton;
-    }
+    fun done() = onDone()
 
     /**
      * Set whether this panel is active.
-     * <p/>
+     *
+     *
      * @param active true if active, false otherwise.
      */
-    public void setActive(boolean active) {
-        setVisible(active);
+    fun setActive(active: Boolean) {
+        root.isVisible = active
     }
 }

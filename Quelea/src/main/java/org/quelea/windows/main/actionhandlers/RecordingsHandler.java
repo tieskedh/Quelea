@@ -49,8 +49,10 @@ import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
 import org.quelea.windows.multimedia.RecordingEncoder;
+import tornadofx.FX;
 
 /**
  * Class to handle the recordings.
@@ -320,7 +322,7 @@ public class RecordingsHandler {
      */
     private void convertOSX(String file) {
         Platform.runLater(() -> {
-            statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("Converting recording to MP3"));
+            statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("Converting recording to MP3"));
         });
         Process vlcProcess;
         List<String> vlcArgs = new ArrayList<>();

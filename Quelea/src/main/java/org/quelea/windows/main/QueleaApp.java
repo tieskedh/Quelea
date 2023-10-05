@@ -26,6 +26,7 @@ import org.quelea.server.AutoDetectServer;
 import org.quelea.server.MobileLyricsServer;
 import org.quelea.server.RemoteControlServer;
 import org.quelea.services.languages.LabelGrabber;
+import tornadofx.FX;
 
 /**
  * A singleton class for grabbing application wide objects with ease such as the main window.
@@ -142,8 +143,9 @@ public class QueleaApp {
      *
      * @return the status panel group.
      */
+    @Deprecated(forRemoval = true)
     public StatusPanelGroup getStatusGroup() {
-        return mainWindow.getMainPanel().getStatusPanelGroup();
+        return FX.find(StatusPanelGroup.class);
     }
 
     /**

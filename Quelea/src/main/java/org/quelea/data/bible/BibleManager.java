@@ -31,7 +31,9 @@ import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * Loads and manages the available getBibles.
@@ -192,7 +194,9 @@ public final class BibleManager {
         final StatusPanel[] panel = new StatusPanel[1];
         if(QueleaApp.get().getMainWindow() != null) {
             Utils.fxRunAndWait(() -> {
-                panel[0] = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("building.bible.index"));
+                panel[0] = FX.find(StatusController.class).addPanel(
+                        LabelGrabber.INSTANCE.getLabel("building.bible.index")
+                );
                 panel[0].removeCancelButton();
                 panel[0].getProgressBar().setProgress(-1);
             });

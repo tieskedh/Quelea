@@ -47,7 +47,7 @@ public class ShortcutManager {
      */
     public void addShortcuts(final MainWindow mainWindow) {
         final MainPanel mainPanel = QueleaApp.get().getMainWindow().getMainPanel();
-        mainPanel.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+        mainPanel.getRoot().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (!keyCodeBuilder.contains(event.getCode().getName()))
                 keyCodeBuilder.add(event.getCode().getName());
             if (checkCombination(QueleaProperties.get().getAdvanceKeys())) {
@@ -57,7 +57,7 @@ public class ShortcutManager {
             }
         });
 
-        mainPanel.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
+        mainPanel.getRoot().addEventFilter(KeyEvent.KEY_RELEASED, event -> {
             if (checkCombination(QueleaProperties.get().getSearchKeys())) {
                 mainPanel.getLibraryPanel().getTabPane().getSelectionModel().select(0);
                 mainPanel.getLibraryPanel().getLibrarySongPanel().getSearchBox().requestFocus();

@@ -50,6 +50,7 @@ import org.quelea.utils.DesktopApi;
 import org.quelea.windows.multimedia.VLCWindow;
 import org.quelea.windows.splash.SplashStage;
 import org.quelea.utils.VLCDiscovery;
+import tornadofx.FX;
 
 /**
  * The main class, sets everything in motion...
@@ -77,6 +78,8 @@ public final class Main extends Application {
      */
     @Override
     public void start(Stage stage) {
+        FX.registerApplication(this, stage);
+
         QueleaProperties.init(getParameters().getNamed().get("userhome"));
         LOGGER = LoggerUtils.getLogger();
         System.setProperty("glass.accessible.force", "false");
@@ -177,11 +180,15 @@ public final class Main extends Application {
                         LOGGER.log(Level.INFO, "Auto-detect servers disabled");
                     }
 
-                    if (QueleaProperties.get().getWebProxyHost() != null && QueleaProperties.get().getWebProxyPort() != null && QueleaProperties.get().getWebProxyUser() != null && QueleaProperties.get().getWebProxyPassword() != null) {
-                        System.setProperty("http.proxyHost", QueleaProperties.get().getWebProxyHost());
-                        System.setProperty("http.proxyPort", QueleaProperties.get().getWebProxyPort());
-                        System.setProperty("http.proxyUser", QueleaProperties.get().getWebProxyUser());
-                        System.setProperty("http.proxyPassword", QueleaProperties.get().getWebProxyPassword());
+                    String webProxyHost = QueleaProperties.get().getWebProxyHost();
+                    String webProxyPort = QueleaProperties.get().getWebProxyPort();
+                    String webProxyUser = QueleaProperties.get().getWebProxyUser();
+                    String webProxyPassword = QueleaProperties.get().getWebProxyPassword();
+                    if ( webProxyHost != null && webProxyPort != null && webProxyUser != null && webProxyPassword != null) {
+                        System.setProperty("http.proxyHost", webProxyHost);
+                        System.setProperty("http.proxyPort", webProxyPort);
+                        System.setProperty("http.proxyUser", webProxyUser);
+                        System.setProperty("http.proxyPassword", webProxyPassword);
                     }
                     if (lyricsHidden) {
                         LOGGER.log(Level.INFO, "Hiding projector display on monitor 0 (base 0!)");

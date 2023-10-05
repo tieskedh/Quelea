@@ -40,9 +40,10 @@ import static org.quelea.services.importexport.PDFExporter.LOGGER;
 import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * An event handler that exports the current schedule to a PDF file.
@@ -74,7 +75,7 @@ public class ExportPDFScheduleSongsActionHandler implements EventHandler<ActionE
                     printChords = true;
                 }
             }).addNoButton(t1 -> printChords = false).build().showAndWait();
-            final StatusPanel panel = QueleaApp.get().getMainWindow().getMainPanel().getStatusPanelGroup().addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
+            final StatusPanel panel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("exporting.label") + "...");
             final List<SongDisplayable> songDisplayablesThreadSafe = getSongs(schedule);
             final File threadSafeFile = new File(file.getAbsolutePath());
             new Thread(() -> {

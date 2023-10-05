@@ -118,7 +118,7 @@ public class MainWindow extends Stage {
         menuBox.getChildren().add(toolbarPanel);
         menuBox.getChildren().add(mainPane);
 
-        mainPane.setCenter(mainpanel);
+        mainPane.setCenter(mainpanel.getRoot());
         
         LOGGER.log(Level.INFO, "Setting scene info");
         SceneInfo sceneInfo = QueleaProperties.get().getSceneInfo();

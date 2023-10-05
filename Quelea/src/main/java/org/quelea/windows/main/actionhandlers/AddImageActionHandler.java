@@ -35,7 +35,9 @@ import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * The action handler for adding images.
@@ -62,7 +64,7 @@ public class AddImageActionHandler implements EventHandler<ActionEvent> {
                     @Override
                     public void run() {
                         Platform.runLater(() -> {
-                            panel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("adding.images"));
+                            panel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("adding.images"));
                             panel.getProgressBar().setProgress(-1);
                             panel.getCancelButton().setOnAction(t1 -> {
                                 panel.done();

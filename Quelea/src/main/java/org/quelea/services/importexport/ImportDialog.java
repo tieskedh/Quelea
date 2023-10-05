@@ -57,7 +57,9 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.SongDuplicateChecker;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * An import dialog used for importing songs.
@@ -181,7 +183,7 @@ public abstract class ImportDialog extends Stage implements PropertyChangeListen
 		VBox.setMargin(buttonPane, new Insets(10));
 		mainPane.getChildren().add(buttonPane);
 		importButton.setOnAction(evt -> {
-			statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("importing.status"));
+			statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("importing.status"));
 			statusPanel.getCancelButton().setOnAction(evt2 -> {
 				statusPanel.done();
 				halt = true;

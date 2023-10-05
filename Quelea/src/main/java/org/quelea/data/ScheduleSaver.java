@@ -27,7 +27,9 @@ import org.quelea.services.utils.Utils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * Responsible for saving a schedule.
@@ -74,7 +76,7 @@ public class ScheduleSaver {
                 schedule.setFile(selectedFile);
             }
         }
-        final StatusPanel statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("saving.schedule"));
+        final StatusPanel statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("saving.schedule"));
         new Thread(() -> {
             boolean success = false;
             if (schedule.getFile() != null) {

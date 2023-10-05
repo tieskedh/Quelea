@@ -27,8 +27,9 @@ import java.nio.file.Paths;
 import javafx.application.Platform;
 import javax.swing.JFrame;
 import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 import uk.co.caprica.vlcj.component.EmbeddedMediaPlayerComponent;
 import uk.co.caprica.vlcj.discovery.NativeDiscovery;
 import uk.co.caprica.vlcj.player.MediaPlayer;
@@ -96,7 +97,7 @@ public class RecordingEncoder {
         ourFrame.dispose();
         // Start loading panel
         Platform.runLater(() -> {
-            statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("converting.to.mp3"));
+            statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("converting.to.mp3"));
         });
         converting = true;
     }

@@ -89,7 +89,9 @@ import org.quelea.data.db.SongManager;
 import org.quelea.data.displayable.SongDisplayable;
 import org.quelea.services.languages.LabelGrabber;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import tornadofx.FX;
 
 /**
  * General utility class containing a bunch of static methods.
@@ -467,7 +469,7 @@ public final class Utils {
 			Utils.fxRunAndWait(new Runnable() {
 				@Override
 				public void run() {
-					final StatusPanel statusPanel = QueleaApp.get().getStatusGroup().addPanel(LabelGrabber.INSTANCE.getLabel("updating.db"));
+					final StatusPanel statusPanel = FX.find(StatusController.class).addPanel(LabelGrabber.INSTANCE.getLabel("updating.db"));
 					statusPanel.removeCancelButton();
 					new Thread() {
 						@Override

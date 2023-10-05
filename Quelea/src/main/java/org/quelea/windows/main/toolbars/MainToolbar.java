@@ -274,7 +274,7 @@ public class MainToolbar extends ToolBar {
         manageNoticesButton.setOnMouseEntered(evt -> {
             add.hide();
         });
-        QueleaApp.get().getMainWindow().getMainPanel().setOnMouseEntered(evt -> {
+        QueleaApp.get().getMainWindow().getMainPanel().getRoot().setOnMouseEntered(evt -> {
             add.hide();
         });
         QueleaApp.get().getMainWindow().getMainMenuBar().setOnMouseEntered(evt -> {

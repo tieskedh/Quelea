@@ -15,62 +15,68 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main;
+package org.quelea.windows.main
 
-import java.util.ArrayList;
-import java.util.List;
-import javafx.scene.layout.VBox;
+import javafx.application.Platform
+import tornadofx.*
 
-/**
- * A group of status panels that shows all the background tasks Quelea is
- * currently processing.
- * <p>
- * @author Michael
- */
-public class StatusPanelGroup extends VBox {
 
-    private final List<StatusPanel> panels;
-
-    /**
-     * Create a new status panel group.
-     */
-    public StatusPanelGroup() {
-        panels = new ArrayList<>();
-    }
-
+class StatusController : Controller() {
+    val panels = observableListOf<StatusPanel?>()
     /**
      * Add a status panel to the given group.
-     * <p>
+     *
+     *
      * @param label the label to put on the status panel.
      * @return the status panel.
      */
-    public synchronized StatusPanel addPanel(String label) {
-        StatusPanel panel = new StatusPanel(this, label, panels.size());
-        getChildren().add(panel);
-        panels.add(panel);
-        return panel;
+    @Synchronized
+    fun addPanel(label: String): StatusPanel {
+        val panelIndex = panels.size
+        val panel = StatusPanel(label, panelIndex){
+            Platform.runLater { removePanel(panelIndex) }
+        }
+        panels.add(panel)
+        return panel
     }
 
     /**
      * Remove a status panel at the given index.
-     * <p>
+     *
+     *
      * @param index the index of the panel to remove.
      */
-    public void removePanel(int index) {
-        StatusPanel panel = panels.get(index);
-        if(panel != null) {
-            getChildren().remove(panel);
-            panels.set(index, null);
+    fun removePanel(index: Int) {
+        val panel = panels[index]
+        if (panel != null) {
+            panels[index] = null
         }
     }
 
     /**
      * Remove a status panel.
-     * <p>
+     *
+     *
      * @param panel the panel to remove.
      */
-    public void removePanel(StatusPanel panel) {
-        removePanel(panels.indexOf(panel));
+    fun removePanel(panel: StatusPanel?) {
+        removePanel(panels.indexOf(panel))
     }
+}
 
+/**
+ * A group of status panels that shows all the background tasks Quelea is
+ * currently processing.
+ *
+ *
+ * @constructor Create a new status panel group.
+ * @author Michael
+ */
+class StatusPanelGroup : View() {
+    private val statusController by inject<StatusController>()
+    override val root = vbox {
+        bindChildren(statusController.panels.filtered { it != null }){
+            it!!.root
+        }
+    }
 }
