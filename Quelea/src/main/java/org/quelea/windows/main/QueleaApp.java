@@ -26,6 +26,7 @@ import org.quelea.server.AutoDetectServer;
 import org.quelea.server.MobileLyricsServer;
 import org.quelea.server.RemoteControlServer;
 import org.quelea.services.languages.LabelGrabber;
+import org.quelea.windows.main.schedule.SchedulePanel;
 import tornadofx.FX;
 
 /**
@@ -79,7 +80,7 @@ public class QueleaApp {
         if (schedule == null) {
             Dialog.showError(LabelGrabber.INSTANCE.getLabel("error.schedule.title"), LabelGrabber.INSTANCE.getLabel("error.schedule.message"));
         } else {
-            QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().setSchedule(schedule);
+            FX.find(SchedulePanel.class).getScheduleList().setSchedule(schedule);
         }
     }
 

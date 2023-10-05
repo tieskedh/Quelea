@@ -72,7 +72,9 @@ class MainPanel : View() {
                 scheduleAndLibrary = splitpane(Orientation.VERTICAL) {
                     minWidth = 160.0
                     LOGGER.log(Level.INFO, "Creating schedule panel")
-                    schedulePanel = opcr(this, SchedulePanel())
+                    opcr(this, FX.find<SchedulePanel>().also {
+                        schedulePanel = it
+                    }.root)
                     LOGGER.log(Level.INFO, "Creating library panel")
                     libraryPanel = opcr(this, LibraryPanel())
                 }

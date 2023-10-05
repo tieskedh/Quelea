@@ -84,7 +84,7 @@ public class PreviewPanel extends LivePreviewPanel {
             if (t.getCode() == KeyCode.RIGHT) {
                 QueleaApp.get().getMainWindow().getMainPanel().getLivePanel().requestFocus();
             } else if (t.getCode() == KeyCode.LEFT) {
-                QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().requestFocus();
+                QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getRoot().requestFocus();
             }
         });
     }

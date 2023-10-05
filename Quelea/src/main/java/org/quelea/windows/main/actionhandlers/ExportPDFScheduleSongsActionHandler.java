@@ -43,6 +43,7 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import org.quelea.windows.main.schedule.SchedulePanel;
 import tornadofx.FX;
 
 /**
@@ -56,7 +57,7 @@ public class ExportPDFScheduleSongsActionHandler implements EventHandler<ActionE
 
     @Override
     public void handle(ActionEvent t) {
-        Schedule schedule = QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().getSchedule();
+        Schedule schedule = FX.find(SchedulePanel.class).getScheduleList().getSchedule();
         FileChooser fileChooser = new FileChooser();
         if (QueleaProperties.get().getLastDirectory() != null) {
             fileChooser.setInitialDirectory(QueleaProperties.get().getLastDirectory());

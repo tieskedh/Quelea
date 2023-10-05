@@ -37,6 +37,7 @@ import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.StatusController;
 import org.quelea.windows.main.StatusPanel;
+import org.quelea.windows.main.schedule.SchedulePanel;
 import tornadofx.FX;
 
 /**
@@ -87,7 +88,7 @@ public class AddPowerpointActionHandler implements EventHandler<ActionEvent> {
                             if(!halt) {
                                 Platform.runLater(() -> {
                                     QueleaProperties.get().setLastDirectory(file.getParentFile());
-                                    QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().add(displayable);
+                                    FX.find(SchedulePanel.class).getScheduleList().add(displayable);
                                 });
                             }
                         }

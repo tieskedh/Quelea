@@ -15,247 +15,218 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.schedule;
+package org.quelea.windows.main.schedule
 
-import java.util.logging.Logger;
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ListChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.geometry.Orientation;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import org.quelea.data.ThemeDTO;
-import org.quelea.data.displayable.Displayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.actionhandlers.RemoveScheduleItemActionHandler;
+import javafx.application.Platform
+import javafx.geometry.Orientation
+import javafx.scene.Scene
+import javafx.scene.control.Button
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.text.FontWeight
+import javafx.stage.Stage
+import javafx.stage.StageStyle
+import org.quelea.data.ThemeDTO
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.Utils
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.actionhandlers.RemoveScheduleItemActionHandler
+import tornadofx.*
 
 /**
  * The panel displaying the schedule / order of service. Items from here are
  * loaded into the preview panel where they are viewed and then projected live.
  * Items can be added here from the library.
- * <p/>
+ *
+ *
  *
  * @author Michael
  */
-public class SchedulePanel extends BorderPane {
+class SchedulePanel : View() {
+    /**
+     * Get the schedule list backing this panel.
+     *
+     *
+     *
+     * @return the schedule list.
+     */
+    lateinit var scheduleList: ScheduleList
+        private set
 
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final ScheduleList scheduleList;
-    private final Button removeButton;
-    private final Button upButton;
-    private final Button downButton;
-    private final Button themeButton;
-    private final ScheduleThemeNode scheduleThemeNode;
-    private Stage themePopup;
+    private lateinit var themeButton: Button
+    lateinit var themeNode: ScheduleThemeNode
+        private set
+
+
+    private val buttonDisableProp = booleanProperty(true)
+    private var buttonDisable by buttonDisableProp
+
+    private lateinit var themePopup: Stage
+
+
+    override val root = borderpane {
+        val darkTheme = get().useDarkTheme
+
+        top {
+            toolbar {
+                label(
+                    LabelGrabber.INSTANCE.getLabel("order.service.heading")
+                ) {
+                    style { fontWeight = FontWeight.BOLD }
+                }
+
+                spacer()
+
+                themeButton = button(
+                    graphic = ImageView(Image("file:icons/theme.png")).apply {
+                        fitWidth = 16.0
+                        fitHeight = 16.0
+                    }
+                ) {
+                    tooltip(LabelGrabber.INSTANCE.getLabel("theme.button.tooltip"))
+                    action {
+                        if (themePopup.isShowing) {
+                            //fixes a JVM crash
+                            if (Utils.isMac()) {
+                                Platform.runLater { themePopup.hide() }
+                            } else {
+                                themePopup.hide()
+                            }
+                        } else {
+                            themePopup.x = localToScene(0.0, 0.0).x + QueleaApp.get().mainWindow.x
+                            themePopup.y = localToScene(0.0, 0.0).y + 45 + QueleaApp.get().mainWindow.y
+                            themePopup.show()
+                        }
+                    }
+                }
+            }
+        }
+        left {
+            toolbar {
+                orientation = Orientation.VERTICAL
+                button(
+                    graphic = ImageView(
+                        Image(if (darkTheme) "file:icons/cross-light.png" else "file:icons/cross.png")
+                    ).apply {
+                        fitWidth = 16.0
+                        fitHeight = 16.0
+                    }
+                ) {
+                    Utils.setToolbarButtonStyle(this)
+                    tooltip(LabelGrabber.INSTANCE.getLabel("remove.song.schedule.tooltip"))
+                    disableWhen(buttonDisableProp)
+                    onAction = RemoveScheduleItemActionHandler()
+                }
+                button(
+                    graphic = ImageView(
+                        Image(if (darkTheme) "file:icons/up-light.png" else "file:icons/up.png")
+                    ).apply {
+                        fitWidth = 16.0
+                        fitHeight = 16.0
+                    }
+                ) {
+                    Utils.setToolbarButtonStyle(this)
+                    tooltip(LabelGrabber.INSTANCE.getLabel("move.up.schedule.tooltip"))
+                    disableWhen(buttonDisableProp)
+                    action {
+                        scheduleList.moveCurrentItem(ScheduleList.Direction.UP)
+                    }
+                }
+
+                button(
+                    graphic = ImageView(
+                        Image(if (darkTheme) "file:icons/down-light.png" else "file:icons/down.png")
+                    ).apply {
+                        fitWidth = 16.0
+                        fitHeight = 16.0
+                    }
+                ) {
+                    Utils.setToolbarButtonStyle(this)
+                    tooltip(LabelGrabber.INSTANCE.getLabel("move.down.schedule.tooltip"))
+                    disableWhen(buttonDisableProp)
+                    action {
+                        scheduleList.moveCurrentItem(ScheduleList.Direction.DOWN)
+                    }
+                }
+            }
+        }
+
+        center {
+            scheduleList = opcr(this, ScheduleList()){
+                itemsProperty().get().onChange {
+                    themeNode.updateTheme()
+                }
+                selectionModel.selectedIndexProperty().addListener { _, _, _ -> updateScheduleDisplay() }
+                listView.focusedProperty().addListener { _, _, newValue -> if (newValue) updateScheduleDisplay() }
+            }
+        }
+
+
+    }
 
     /**
      * Create and initialise the schedule panel.
      */
-    public SchedulePanel() {
-        boolean darkTheme = QueleaProperties.get().getUseDarkTheme();
-        ImageView themeButtonIcon = new ImageView(new Image("file:icons/theme.png"));
-        themeButtonIcon.setFitWidth(16);
-        themeButtonIcon.setFitHeight(16);
-        themeButton = new Button("", themeButtonIcon);
-        themeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("theme.button.tooltip")));
-        scheduleList = new ScheduleList();
-        scheduleList.itemsProperty().get().addListener(new ListChangeListener<Displayable>() {
-            @Override
-            public void onChanged(ListChangeListener.Change<? extends Displayable> change) {
-                scheduleThemeNode.updateTheme();
-            }
-        });
+    init {
+        val darkTheme = get().useDarkTheme
+        themePopup = Stage()
+        themeNode = ScheduleThemeNode(
+            { theme: ThemeDTO -> updateSongTheme(theme) },
+            { theme: ThemeDTO -> updateBibleTheme(theme) },
+            themePopup,
+            themeButton
+        )
 
-        themePopup = new Stage();
-        themePopup.setTitle(LabelGrabber.INSTANCE.getLabel("theme.select.text"));
-        Utils.addIconsToStage(themePopup);
-        themePopup.initStyle(StageStyle.UNDECORATED);
-        themePopup.focusedProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) {
-                if (t && !t1) {
-                    if (Utils.isMac()) {
-                        Platform.runLater(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                themePopup.hide();
-                            }
-                        });
-
-                    } else {
-                        themePopup.hide();
-                    }
-                }
-            }
-        });
-
-        scheduleThemeNode = new ScheduleThemeNode(this::updateSongTheme, this::updateBibleTheme, themePopup, themeButton);
-        scheduleThemeNode.setStyle("-fx-background-color:WHITE;-fx-border-color: rgb(49, 89, 23);-fx-border-radius: 5;");
-        Scene scene = new Scene(scheduleThemeNode);
-        if (darkTheme) {
-            scene.getStylesheets().add("org/modena_dark.css");
-        }
-        themePopup.setScene(scene);
-
-        themeButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                if (themePopup.isShowing()) {
-                    //fixes a JVM crash
-                    if (Utils.isMac()) {
-                        Platform.runLater(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                themePopup.hide();
-                            }
-                        });
-                    } else {
-                        themePopup.hide();
-                    }
-
+        themePopup.title = LabelGrabber.INSTANCE.getLabel("theme.select.text")
+        Utils.addIconsToStage(themePopup)
+        themePopup.initStyle(StageStyle.UNDECORATED)
+        themePopup.focusedProperty().addListener { observable, oldValue, newValue ->
+            if (oldValue && !newValue) {
+                if (Utils.isMac()) {
+                    Platform.runLater { themePopup.hide() }
                 } else {
-                    themePopup.setX(themeButton.localToScene(0, 0).getX() + QueleaApp.get().getMainWindow().getX());
-                    themePopup.setY(themeButton.localToScene(0, 0).getY() + 45 + QueleaApp.get().getMainWindow().getY());
-                    themePopup.show();
+                    themePopup.hide()
                 }
             }
-        });
-//        themeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("adjust.theme.tooltip")));
+        }
+
+        themeNode.style = "-fx-background-color:WHITE;-fx-border-color: rgb(49, 89, 23);-fx-border-radius: 5;"
+        val scene = Scene(themeNode)
+        if (darkTheme) {
+            scene.stylesheets.add("org/modena_dark.css")
+        }
+        themePopup.setScene(scene)
+        //        themeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("adjust.theme.tooltip")));
 
         //Needed to initialise theme preview. Without this calls to the theme thumbnail return a blank image
         //before hte theme popup is opened for the first time. TODO: Find a better way of doing this.
-        themePopup.show();
-        Platform.runLater(() -> themePopup.hide());
-
-        ToolBar toolbar = new ToolBar();
-        toolbar.setOrientation(Orientation.VERTICAL);
-        ImageView removeIV = new ImageView(new Image(darkTheme ? "file:icons/cross-light.png" : "file:icons/cross.png"));
-        removeIV.setFitWidth(16);
-        removeIV.setFitHeight(16);
-        removeButton = new Button("", removeIV);
-        Utils.setToolbarButtonStyle(removeButton);
-        removeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("remove.song.schedule.tooltip")));
-        removeButton.setDisable(true);
-        removeButton.setOnAction(new RemoveScheduleItemActionHandler());
-
-        ImageView upIV = new ImageView(new Image(darkTheme ? "file:icons/up-light.png" : "file:icons/up.png"));
-        upIV.setFitWidth(16);
-        upIV.setFitHeight(16);
-        upButton = new Button("", upIV);
-        Utils.setToolbarButtonStyle(upButton);
-        upButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("move.up.schedule.tooltip")));
-        upButton.setDisable(true);
-        upButton.setOnAction(new EventHandler<javafx.event.ActionEvent>() {
-            @Override
-            public void handle(javafx.event.ActionEvent t) {
-                scheduleList.moveCurrentItem(ScheduleList.Direction.UP);
-            }
-        });
-
-        ImageView downIV = new ImageView(new Image(darkTheme ? "file:icons/down-light.png" : "file:icons/down.png"));
-        downIV.setFitWidth(16);
-        downIV.setFitHeight(16);
-        downButton = new Button("", downIV);
-        Utils.setToolbarButtonStyle(downButton);
-        downButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("move.down.schedule.tooltip")));
-        downButton.setDisable(true);
-        downButton.setOnAction(new EventHandler<javafx.event.ActionEvent>() {
-            @Override
-            public void handle(javafx.event.ActionEvent t) {
-                scheduleList.moveCurrentItem(ScheduleList.Direction.DOWN);
-            }
-        });
-
-        scheduleList.getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> ov, Number t, Number t1) {
-                updateScheduleDisplay();
-            }
-        });
-        scheduleList.getListView().focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if(newValue) updateScheduleDisplay();
-        });
-
-        ToolBar header = new ToolBar();
-        Label headerLabel = new Label(LabelGrabber.INSTANCE.getLabel("order.service.heading"));
-        headerLabel.setStyle("-fx-font-weight: bold;");
-        header.getItems().add(headerLabel);
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getItems().add(spacer);
-        header.getItems().add(themeButton);
-
-        toolbar.getItems().add(removeButton);
-        toolbar.getItems().add(upButton);
-        toolbar.getItems().add(downButton);
-
-        setTop(header);
-        setLeft(toolbar);
-        setCenter(scheduleList);
+        themePopup.show()
+        Platform.runLater { themePopup.hide() }
     }
 
-    private void updateSongTheme(ThemeDTO theme) {
-        QueleaApp.get().getMainWindow().getGlobalThemeStore().setSongThemeOverride(theme);
+    private fun updateSongTheme(theme: ThemeDTO) {
+        QueleaApp.get().mainWindow.globalThemeStore.setSongThemeOverride(theme)
     }
 
-    private void updateBibleTheme(ThemeDTO theme) {
-        QueleaApp.get().getMainWindow().getGlobalThemeStore().setBibleThemeOverride(theme);
+    private fun updateBibleTheme(theme: ThemeDTO) {
+        QueleaApp.get().mainWindow.globalThemeStore.setBibleThemeOverride(theme)
     }
 
-    public void updateScheduleDisplay() {
-        if (scheduleList.getItems().isEmpty()) {
-            removeButton.setDisable(true);
-            upButton.setDisable(true);
-            downButton.setDisable(true);
+    fun updateScheduleDisplay() {
+        if (scheduleList.items.isEmpty()) {
+            buttonDisable = true
         } else {
-            removeButton.setDisable(false);
-            upButton.setDisable(false);
-            downButton.setDisable(false);
-            QueleaApp.get().getMainWindow().getMainPanel().getPreviewPanel().setDisplayable(scheduleList.getSelectionModel().getSelectedItem(), 0);
+            buttonDisable = false
+            QueleaApp.get().mainWindow.mainPanel.previewPanel.setDisplayable(
+                scheduleList.selectionModel.selectedItem,
+                0
+            )
         }
     }
 
-    /**
-     * Get the schedule list backing this panel.
-     * <p/>
-     *
-     * @return the schedule list.
-     */
-    public ScheduleList getScheduleList() {
-        return scheduleList;
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
     }
-
-    public Button getThemeButton() {
-        return themeButton;
-    }
-
-    public ScheduleThemeNode getThemeNode() {
-        return scheduleThemeNode;
-    }
-
-    public Stage getThemePopup() {
-        return themePopup;
-    }
-
-
 }

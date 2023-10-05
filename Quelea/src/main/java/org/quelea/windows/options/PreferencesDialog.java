@@ -52,8 +52,10 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.DisplayStage;
 import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.main.schedule.SchedulePanel;
 import org.quelea.windows.multimedia.VLCWindow;
 import org.quelea.windows.options.customprefs.ColorPickerPreference;
+import tornadofx.FX;
 
 import java.util.HashMap;
 
@@ -116,7 +118,7 @@ public class PreferencesDialog extends Stage {
                 updatePos();
             }
             displayPanel.setDisplayChange(false);
-            QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getThemeNode().refresh();
+            FX.find(SchedulePanel.class).getThemeNode().refresh();
 
             // If the option has changed for linking the preview and live dividers, update the current UI to respect
             // the options now
