@@ -22,6 +22,7 @@ import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 import org.quelea.services.utils.Utils;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -200,7 +201,7 @@ public final class BibleChapter implements BibleInterface, Serializable {
      * @param i the verse number to get.
      * @return the verse at the specified number, or null if it doesn't exist.
      */
-    public BibleVerse getVerse(int i) {
+    public @Nullable BibleVerse getVerse(int i) {
         return verses.get(i);
     }
 

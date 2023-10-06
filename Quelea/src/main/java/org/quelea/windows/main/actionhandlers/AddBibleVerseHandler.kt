@@ -1,4 +1,4 @@
- /* 
+/* 
  * This file is part of Quelea, free projection software for churches.
  * 
  * 
@@ -15,105 +15,110 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.quelea.data.ThemeDTO;
-import org.quelea.data.bible.Bible;
-import org.quelea.data.bible.BibleVerse;
-import org.quelea.data.displayable.BiblePassage;
-import org.quelea.data.displayable.Displayable;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.schedule.ScheduleList;
+import org.quelea.data.bible.Bible
+import org.quelea.data.bible.BibleVerse
+import org.quelea.data.displayable.BiblePassage
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.schedule.ScheduleList
+
 
 /**
  *
  * @author Arvid
  */
-public class AddBibleVerseHandler {
+class AddBibleVerseHandler {
+    fun add() {
+        val sl = QueleaApp.get().mainWindow.mainPanel.schedulePanel.scheduleList
+        val passage = QueleaApp.get().mainWindow.mainPanel.livePanel.displayable
+                as? BiblePassage ?: return
 
-    public void add() {
-        ScheduleList sl = QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList();
-        Set<Bible> current = new HashSet<>();
-        Displayable d = QueleaApp.get().getMainWindow().getMainPanel().getLivePanel().getDisplayable();
-        if (d instanceof BiblePassage) {
-            current.add(((BiblePassage) d).getVerses()[0].getChapter().getBook().getBible());
-        }
-        Bible b = null;
-        if (current.size() == 1) {
-            b = current.iterator().next();
-        }
-        if (b == null) {
-            return;
-        }
-        Map<BiblePassage, BiblePassage> replaceMap = new IdentityHashMap<>();
-        if (d instanceof BiblePassage) {
-            BiblePassage passage = (BiblePassage) d;
-            ThemeDTO theme = passage.getTheme();
-            List<BibleVerse> newVerses = new ArrayList<>();
-            int lastNumber = 0;
-            int chapter = 0;
-            int i = 0;
-            for (BibleVerse bv : passage.getVerses()) {
-                int verseNum = bv.getNum();
-                int chapterNum = bv.getChapter().getNum();
-                int bookNum = bv.getChapter().getBook().getBookNumber();
-                newVerses.add(b.getBooks()[bookNum - 1].getChapter(chapterNum - 1).getVerse(verseNum));
-                if (i == passage.getVerses().length - 1) {
-                    newVerses.add(b.getBooks()[bookNum - 1].getChapter(chapterNum - 1).getVerse(verseNum + 1));
-                }
-                if (newVerses.get(newVerses.size() - 1) != null) {
-                    lastNumber = verseNum + 1;
-                } else if (newVerses.get(newVerses.size() - 1) == null) {
-                    newVerses.remove(newVerses.size() - 1);
-                    newVerses.add(b.getBooks()[bookNum - 1].getChapter(chapterNum).getVerse(1));
-                    chapter = bv.getChapter().getNum() + 1;
-                    lastNumber = 1;
-                }
-                i++;
-            }
-            BibleVerse firstVerse = newVerses.get(0);
-            String passageNumber = passage.getLocation().split(" (?=\\d)")[1];
-            if (chapter > 0) {
-                passageNumber = passageNumber + ";" + chapter + ":" + lastNumber;
-            } else if (passageNumber.contains(";") || (passageNumber.contains(","))) {
-                if (passageNumber.contains(";")) {
-                    if (passageNumber.substring(passageNumber.lastIndexOf(";")).contains("-")) {
-                        passageNumber = passageNumber.substring(0, passageNumber.lastIndexOf("-") + 1) + lastNumber;
-                    } else
-                        passageNumber = passageNumber + "-" + lastNumber;
-                } else {
-                    if (passageNumber.substring(passageNumber.lastIndexOf(",")).contains("-")) {
-                        passageNumber = passageNumber.substring(0, passageNumber.lastIndexOf("-") + 1) + lastNumber;
-                    } else
-                        passageNumber = passageNumber + "-" + lastNumber;
-                }
-            } else {
-                if (passageNumber.contains("-")) {
-                    passageNumber = passageNumber.substring(0, passageNumber.indexOf("-") + 1) + lastNumber;
-                } else if (passageNumber.contains(":")) {
-                    passageNumber = passageNumber + "-" + lastNumber;
-                }
-            }
-            String summary = firstVerse.getChapter().getBook() + " " + passageNumber + "\n" + b.getBibleName();
-            replaceMap.put(passage, new BiblePassage(summary, newVerses.toArray(new BibleVerse[newVerses.size()]), theme, passage.getMulti()));
-        }
-        sl.getSelectionModel().clearSelection();
-        int index = -1;
-        for (BiblePassage key : replaceMap.keySet()) {
-            index = sl.getItems().indexOf(key);
-            if (index != -1) {
-                sl.getItems().remove(index);
-                sl.getItems().add(index, replaceMap.get(key));
-            }
-        }
+        val firstVerse = passage.verses.first()
+        val bible = firstVerse.chapter.book.bible
+
+        val theme = passage.theme
+
+        val newVerses = passage.verses.toMutableList()
+        val lastOldVerse = newVerses.last()!!
+
+        val lastOldVerseNum = lastOldVerse.num
+        val lastOldChapterNum = lastOldVerse.chapter.num
+        val lastOldBookNum = lastOldVerse.chapter.book.bookNumber
+
+        val newVerse = bible[
+            lastOldBookNum - 1,
+            lastOldChapterNum - 1,
+            lastOldVerseNum + 1
+        ] ?: bible[
+            lastOldBookNum - 1,
+            lastOldChapterNum,
+            1
+        ]!!
+
+        newVerses+=newVerse
+
+        val passageNumber = getPassageNumber(
+            passage,
+            if (lastOldChapterNum == newVerse.chapter.num) 0 else newVerse.chapter.num,
+            newVerse.num
+        )
+        val summary = "${firstVerse!!.chapter.book} $passageNumber\n${bible.bibleName}"
+
+        sl.replacePassage(
+            passage,
+            BiblePassage(summary, newVerses.toTypedArray<BibleVerse?>(), theme, passage.multi)
+        )
+    }
+
+
+    private fun ScheduleList.replacePassage(
+        old: BiblePassage,
+        new  : BiblePassage
+    ) {
+        selectionModel.clearSelection()
+        val index = items.indexOf(old)
+
         if (index != -1) {
-            sl.getSelectionModel().clearAndSelect(index);
+            items.removeAt(index)
+            items.add(index, new)
+            selectionModel.clearAndSelect(index)
+        }
+    }
+    companion object {
+
+        private operator fun Bible.get(bookNum : Int, chapterNum : Int, verseNum : Int) : BibleVerse? {
+            return this.books[bookNum].getChapter(chapterNum).getVerse(verseNum)
+        }
+        private fun getPassageNumber(passage: BiblePassage, chapter: Int, lastNumber: Int): String {
+            var passageNumber = passage.location.split(Regex(" (?=\\d)"))
+                .dropLastWhile { it.isEmpty() }[1]
+
+            passageNumber = when {
+                chapter > 0 -> "$passageNumber;$chapter:$lastNumber"
+                ";" in passageNumber -> when {
+                    "-" in passageNumber.substringAfterLast(';') ->
+                        passageNumber.substringBeforeLast('-') + "-$lastNumber"
+
+                    else -> "$passageNumber-$lastNumber"
+                }
+
+                "," in passageNumber -> when {
+                    "-" in passageNumber.substringAfterLast(',') ->
+                        passageNumber.substringBeforeLast('-') + "-$lastNumber"
+
+                    else -> "$passageNumber-$lastNumber"
+                }
+
+                else -> when {
+                    "-" in passageNumber ->
+                        passageNumber.substringBeforeLast('-') + "-$lastNumber"
+
+                    ":" in passageNumber -> "$passageNumber-$lastNumber"
+                    else -> passageNumber
+                }
+            }
+            return passageNumber
         }
     }
 }
