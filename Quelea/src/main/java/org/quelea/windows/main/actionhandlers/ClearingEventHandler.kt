@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import org.javafx.dialog.Dialog;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.main.MainPanel;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import org.javafx.dialog.Dialog
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.windows.main.schedule.SchedulePanel
+import tornadofx.FX
 
 /**
  * An action listener that needs to check whether to clear the schedule before
@@ -32,26 +32,26 @@ import org.quelea.windows.main.QueleaApp;
  *
  * @author Michael
  */
-public abstract class ClearingEventHandler implements EventHandler<ActionEvent> {
-
-    private boolean yes = false;
-
+abstract class ClearingEventHandler : EventHandler<ActionEvent> {
     /**
      * Confirm whether it's ok to clear the current schedule.
      *
      * @return true if this is ok, false otherwise.
      */
-    public boolean confirmClear() {
-        MainPanel mainpanel = QueleaApp.get().getMainWindow().getMainPanel();
-        if (mainpanel.getSchedulePanel().getScheduleList().isEmpty()) {
-            return true;
+    fun confirmClear(): Boolean {
+        val scheduleList = FX.find<SchedulePanel>().scheduleList
+        if (scheduleList.isEmpty) return true
+
+        var yes = true
+        if (scheduleList.schedule.isModified) {
+            Dialog.buildConfirmation(
+                LabelGrabber.INSTANCE.getLabel("confirm.label"),
+                LabelGrabber.INSTANCE.getLabel("schedule.clear.text")
+            ).addYesButton{}
+                .addNoButton { yes = false }
+                .build()
+                .showAndWait()
         }
-        yes = true;
-        if(mainpanel.getSchedulePanel().getScheduleList().getSchedule().isModified()) {
-            final Dialog dialog = Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("confirm.label"), LabelGrabber.INSTANCE.getLabel("schedule.clear.text")).addYesButton(t -> {
-            }).addNoButton(t -> yes = false).build();
-            dialog.showAndWait();
-        }
-        return yes;
+        return yes
     }
 }

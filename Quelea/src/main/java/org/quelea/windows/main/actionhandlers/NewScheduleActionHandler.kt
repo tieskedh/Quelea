@@ -16,22 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import javafx.event.ActionEvent;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import org.quelea.windows.main.schedule.SchedulePanel
+import tornadofx.FX
 
 /**
  * The new schedule action listener.
  *
  * @author Michael
  */
-public class NewScheduleActionHandler extends ClearingEventHandler {
-
-    @Override
-    public void handle(ActionEvent t) {
-        if(confirmClear()) {
-            QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().clearSchedule();
+class NewScheduleActionHandler : ClearingEventHandler() {
+    override fun handle(t: ActionEvent) {
+        if (confirmClear()) {
+            FX.find<SchedulePanel>().scheduleList.clearSchedule()
         }
     }
 }

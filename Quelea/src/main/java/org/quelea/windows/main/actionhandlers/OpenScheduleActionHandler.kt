@@ -1,7 +1,7 @@
 /*
  * This file is part of Quelea, free projection software for churches.
- * 
- * 
+ *
+ *
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,35 +16,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import java.io.File;
-import javafx.stage.FileChooser;
-import org.quelea.services.utils.FileFilters;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import javafx.stage.FileChooser
+import org.quelea.services.utils.FileFilters
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.schedule.SchedulePanel
+import tornadofx.FX
 
 /**
  * The open schedule action listener.
+ *
  * @author Michael
  */
-public class OpenScheduleActionHandler extends ClearingEventHandler {
-
-    @Override
-    public void handle(javafx.event.ActionEvent t) {
-        if(confirmClear()) {
-            FileChooser chooser = new FileChooser();
-            if (QueleaProperties.get().getLastScheduleFileDirectory() != null) {
-                chooser.setInitialDirectory(QueleaProperties.get().getLastScheduleFileDirectory());
+class OpenScheduleActionHandler : ClearingEventHandler() {
+    override fun handle(t: ActionEvent) {
+        if (confirmClear()) {
+            val chooser = FileChooser()
+            if (get().lastScheduleFileDirectory != null) {
+                chooser.initialDirectory = get().lastScheduleFileDirectory
             }
-            chooser.getExtensionFilters().add(FileFilters.SCHEDULE);
-            File file = chooser.showOpenDialog(QueleaApp.get().getMainWindow());
-            if(file!=null) {
-                QueleaProperties.get().setLastScheduleFileDirectory(file.getParentFile());
-                QueleaApp.get().openSchedule(file);
-                QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getThemeNode().refresh();
+            chooser.extensionFilters.add(FileFilters.SCHEDULE)
+            val file = chooser.showOpenDialog(QueleaApp.get().mainWindow)
+            if (file != null) {
+                get().setLastScheduleFileDirectory(file.parentFile)
+                QueleaApp.get().openSchedule(file)
+                FX.find<SchedulePanel>().themeNode.refresh()
             }
         }
     }
-
 }
