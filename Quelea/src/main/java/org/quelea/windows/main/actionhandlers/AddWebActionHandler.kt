@@ -16,43 +16,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import java.util.Optional;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.scene.control.TextInputDialog;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.stage.Stage;
-import org.quelea.data.displayable.WebDisplayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import javafx.scene.control.TextInputDialog
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.stage.Stage
+import org.quelea.data.displayable.WebDisplayable
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.windows.main.QueleaApp
 
 /**
  * The action handler responsible for letting the user add a websites to the
  * schedule.
- * <p>
+ *
+ *
  * @author Arvid
  */
-public class AddWebActionHandler implements EventHandler<ActionEvent> {
 
-    @Override
-    public void handle(ActionEvent t) {
-        TextInputDialog dialog = new TextInputDialog("http://");
-        dialog.setTitle(LabelGrabber.INSTANCE.getLabel("website.dialog.title"));
-        dialog.setHeaderText(LabelGrabber.INSTANCE.getLabel("website.dialog.header"));
-        dialog.setContentText(LabelGrabber.INSTANCE.getLabel("website.dialog.content"));
-        dialog.setGraphic(new ImageView(new Image("file:icons/website.png")));
-        Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
-        stage.getIcons().add(new Image("file:icons/web-small.png"));
+class AddWebActionHandler : EventHandler<ActionEvent> {
+    override fun handle(t: ActionEvent){
+        val dialog = TextInputDialog("https://").apply {
+            title = LabelGrabber.INSTANCE.getLabel("website.dialog.title")
+            headerText = LabelGrabber.INSTANCE.getLabel("website.dialog.header")
+            contentText = LabelGrabber.INSTANCE.getLabel("website.dialog.content")
+            graphic = ImageView(Image("file:icons/website.png"))
+        }
 
-        Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            String url = result.get();
-            WebDisplayable displayable = new WebDisplayable(WebDisplayable.sanitiseUrl( url ));
-            QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().add(displayable);
+        val stage = dialog.dialogPane.scene.window as Stage
+        stage.icons.add(Image("file:icons/web-small.png"))
+        dialog.showAndWait().ifPresent { url->
+            val displayable = WebDisplayable(WebDisplayable.sanitiseUrl(url))
+            QueleaApp.get().mainWindow.mainPanel.schedulePanel.scheduleList.add(displayable)
         }
     }
-
 }
