@@ -122,18 +122,18 @@ class QueleaProperties private constructor(
                 .dropLastWhile { it.isEmpty() }
             when (parts.size) {
                 4 -> SceneInfo(
-                    parts[0].toInt().toDouble(),
-                    parts[1].toInt().toDouble(),
-                    parts[2].toInt().toDouble(),
-                    parts[3].toInt().toDouble(),
+                    parts[0].toInt(),
+                    parts[1].toInt(),
+                    parts[2].toInt(),
+                    parts[3].toInt(),
                     false
                 )
 
                 5 -> SceneInfo(
-                    parts[0].toInt().toDouble(),
-                    parts[1].toInt().toDouble(),
-                    parts[2].toInt().toDouble(),
-                    parts[3].toInt().toDouble(),
+                    parts[0].toInt(),
+                    parts[1].toInt(),
+                    parts[2].toInt(),
+                    parts[3].toInt(),
                     parts[4].toBoolean()
                 )
 
