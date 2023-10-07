@@ -122,7 +122,7 @@ public class MainWindow extends Stage {
         
         LOGGER.log(Level.INFO, "Setting scene info");
         SceneInfo sceneInfo = QueleaProperties.get().getSceneInfo();
-        if (sceneInfo != null && !Utils.isOffscreen(sceneInfo)) { //Shouldn't be null unless something goes wrong, but guard against it anyway
+        if (sceneInfo != null && !Utils.isOffScreen(sceneInfo)) { //Shouldn't be null unless something goes wrong, but guard against it anyway
             setScene(getScene(menuBox, (double)sceneInfo.getWidth(), (double)sceneInfo.getHeight()));
             setWidth(sceneInfo.getWidth());
             setHeight(sceneInfo.getHeight());
