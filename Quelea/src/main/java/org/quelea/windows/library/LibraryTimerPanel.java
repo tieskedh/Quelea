@@ -48,6 +48,9 @@ import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.actionhandlers.AddTimerActionHandler;
 import org.quelea.windows.main.actionhandlers.RemoveTimerActionHandler;
+import tornadofx.FX;
+
+import static org.quelea.windows.library.TimerListPanelKt.findTimerListController;
 
 /**
  * The timer panel in the library.
@@ -65,8 +68,11 @@ public class LibraryTimerPanel extends BorderPane {
      * Create a new library timer panel.
      */
     public LibraryTimerPanel() {
-        timerPanel = new TimerListPanel(QueleaProperties.get().getTimerDir().getAbsolutePath());
-        setCenter(timerPanel);
+        TimerListController timerListControl = findTimerListController(
+                QueleaProperties.get().getTimerDir().getAbsolutePath()
+        );
+        timerPanel = new TimerListPanel(timerListControl);
+        setCenter(timerPanel.getRoot());
         toolbar = new ToolBar();
 
         timerPanel.getListView().getSelectionModel().selectedIndexProperty().addListener((ObservableValue<? extends Number> observable, Number oldValue, Number newValue) -> {
@@ -97,12 +103,12 @@ public class LibraryTimerPanel extends BorderPane {
                     try {
                         final Path sourceFile = f.getAbsoluteFile().toPath();
 
-                        if (new File(timerPanel.getDir(), f.getName()).exists()) {
+                        if (new File(timerListControl.getDir(), f.getName()).exists()) {
                             Dialog d = Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("confirm.overwrite.title"), f.getName() + "\n" + LabelGrabber.INSTANCE.getLabel("confirm.overwrite.text"))
                                     .addLabelledButton(LabelGrabber.INSTANCE.getLabel("file.replace.button"), (ActionEvent t1) -> {
                                         try {
-                                            Files.delete(Paths.get(timerPanel.getDir(), f.getName()));
-                                            Files.copy(sourceFile, Paths.get(timerPanel.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
+                                            Files.delete(Paths.get(timerListControl.getDir(), f.getName()));
+                                            Files.copy(sourceFile, Paths.get(timerListControl.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
                                             refresh[0] = true;
                                         } catch (IOException e) {
                                             LOGGER.log(Level.WARNING, "Could not delete or copy file back into directory.", e);
@@ -112,7 +118,7 @@ public class LibraryTimerPanel extends BorderPane {
                                     }).build();
                             d.showAndWait();
                         } else {
-                            Files.copy(sourceFile, Paths.get(timerPanel.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
+                            Files.copy(sourceFile, Paths.get(timerListControl.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
                             refresh[0] = true;
                         }
                     } catch (IOException ex) {
@@ -120,7 +126,7 @@ public class LibraryTimerPanel extends BorderPane {
                     }
                 }
                 if (refresh[0]) {
-                    timerPanel.refresh();
+                    timerListControl.refreshTimers();
                 }
             }
         });

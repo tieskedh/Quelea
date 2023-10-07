@@ -683,7 +683,8 @@ fun File.isVideoFile(): Boolean = (isDirectory() && !isHidden()) ||
  * @receiver  the file to check.
  * @return true if the file is a timer, false otherwise.
  */
-fun File.fileIsTimer(): Boolean = (isDirectory() && !isHidden()) ||
+@JvmName("fileIsTimer")
+fun File.isTimer(): Boolean = (isDirectory() && !isHidden()) ||
         this.hasExtension("*.cdt")
 
 /**

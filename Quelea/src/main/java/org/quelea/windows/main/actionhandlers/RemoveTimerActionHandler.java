@@ -25,7 +25,7 @@ import org.javafx.dialog.Dialog;
 import org.quelea.data.displayable.TimerDisplayable;
 import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.QueleaProperties;
-import org.quelea.windows.library.RefreshTimers;
+import org.quelea.windows.library.TimerListController;
 import org.quelea.windows.library.TimerListPanel;
 import org.quelea.windows.main.MainWindow;
 import org.quelea.windows.main.QueleaApp;
@@ -77,7 +77,7 @@ public class RemoveTimerActionHandler implements EventHandler<ActionEvent> {
                         if (t!=null && t.getName().equals(td.getName())) {
                             file.delete();
                             Platform.runLater(() -> {
-                                FX.Companion.getEventbus().fire(RefreshTimers.INSTANCE);
+                                FX.find(TimerListController.class).refreshTimers();
                             });
                             i = f.listFiles().length + 1;
                         }

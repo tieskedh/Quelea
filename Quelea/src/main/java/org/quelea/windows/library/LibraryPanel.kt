@@ -27,9 +27,8 @@ import tornadofx.*
 import java.util.logging.Level
 
 
-object RefreshTimers : FXEvent()
 class LibraryPanelController: Controller() {
-
+    private val controller = find<TimerListController>()
     private val _timerPanelVisible = booleanProperty(
         !get().timerDir.listFiles().isNullOrEmpty()
     )
@@ -40,7 +39,7 @@ class LibraryPanelController: Controller() {
      */
     fun forceTimer() {
         _timerPanelVisible.set(true)
-        fire(RefreshTimers)
+        controller.refreshTimers()
     }
 }
 
@@ -140,9 +139,6 @@ class LibraryPanel : View() {
                 isClosable = false
                 LOGGER.log(Level.INFO, "Creating library timer panel")
                 timerPanel = opcr(this, LibraryTimerPanel())
-                subscribe<RefreshTimers> {
-                    timerPanel.timerPanel.refresh()
-                }
                 visibleWhen(controller.timerPanelVisible)
             }
         }
