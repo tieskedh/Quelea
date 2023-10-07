@@ -76,7 +76,9 @@ class MainPanel : View() {
                         schedulePanel = it
                     }.root)
                     LOGGER.log(Level.INFO, "Creating library panel")
-                    libraryPanel = opcr(this, LibraryPanel())
+                     add<LibraryPanel>{
+                         libraryPanel = this
+                    }
                 }
 
                 LOGGER.log(Level.INFO, "Creating preview panel")

@@ -26,7 +26,8 @@ import javafx.scene.control.ProgressBar
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.Priority
-import org.quelea.services.utils.Utils
+import org.quelea.services.utils.fxRunAndWait
+import org.quelea.services.utils.setToolbarButtonStyle
 import tornadofx.*
 
 
@@ -98,7 +99,7 @@ class StatusPanel(
             graphic = ImageView(Image("file:icons/cross.png", 13.0, 13.0, false, true))
         ){
             alignment=Pos.CENTER
-            Utils.setToolbarButtonStyle(this)
+            setToolbarButtonStyle()
         }
     }
 
@@ -108,7 +109,7 @@ class StatusPanel(
     var progress: Double
         get() {
             progressVal = 0.0
-            Utils.fxRunAndWait { progressVal = progressBar.progress }
+            fxRunAndWait { progressVal = progressBar.progress }
             return progressVal
         }
         set(progress) {

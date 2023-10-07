@@ -49,9 +49,11 @@ import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
+import org.quelea.windows.library.LibraryPanelController;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.schedule.ScheduleList;
 import org.quelea.windows.newsong.ThemePanel;
+import tornadofx.FX;
 
 /**
  * Creates the creation panel for a timer displayable
@@ -224,7 +226,7 @@ public class CreateTimerPanel extends Stage {
                     }
                     try {
                         TimerIO.timerToFile(displayable, f);
-                        QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().forceTimer();
+                        FX.find(LibraryPanelController.class).forceTimer();
                     } catch (IOException ex) {
                         LoggerUtils.getLogger().log(Level.WARNING, "Could not save timer to file");
                     }

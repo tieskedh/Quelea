@@ -30,7 +30,9 @@ import org.quelea.data.ThemeDTO
 import org.quelea.services.languages.LabelGrabber
 import org.quelea.services.utils.LoggerUtils
 import org.quelea.services.utils.QueleaProperties.Companion.get
-import org.quelea.services.utils.Utils
+import org.quelea.services.utils.addIcons
+import org.quelea.services.utils.isMac
+import org.quelea.services.utils.setToolbarButtonStyle
 import org.quelea.windows.main.QueleaApp
 import org.quelea.windows.main.actionhandlers.RemoveScheduleItemActionHandler
 import tornadofx.*
@@ -89,7 +91,7 @@ class SchedulePanel : View() {
                     action {
                         if (themePopup.isShowing) {
                             //fixes a JVM crash
-                            if (Utils.isMac()) {
+                            if (isMac()) {
                                 Platform.runLater { themePopup.hide() }
                             } else {
                                 themePopup.hide()
@@ -114,7 +116,7 @@ class SchedulePanel : View() {
                         fitHeight = 16.0
                     }
                 ) {
-                    Utils.setToolbarButtonStyle(this)
+                    setToolbarButtonStyle()
                     tooltip(LabelGrabber.INSTANCE.getLabel("remove.song.schedule.tooltip"))
                     disableWhen(buttonDisableProp)
                     onAction = RemoveScheduleItemActionHandler()
@@ -127,7 +129,7 @@ class SchedulePanel : View() {
                         fitHeight = 16.0
                     }
                 ) {
-                    Utils.setToolbarButtonStyle(this)
+                    setToolbarButtonStyle()
                     tooltip(LabelGrabber.INSTANCE.getLabel("move.up.schedule.tooltip"))
                     disableWhen(buttonDisableProp)
                     action {
@@ -143,7 +145,7 @@ class SchedulePanel : View() {
                         fitHeight = 16.0
                     }
                 ) {
-                    Utils.setToolbarButtonStyle(this)
+                    setToolbarButtonStyle()
                     tooltip(LabelGrabber.INSTANCE.getLabel("move.down.schedule.tooltip"))
                     disableWhen(buttonDisableProp)
                     action {
@@ -180,11 +182,11 @@ class SchedulePanel : View() {
         )
 
         themePopup.title = LabelGrabber.INSTANCE.getLabel("theme.select.text")
-        Utils.addIconsToStage(themePopup)
+        themePopup.addIcons()
         themePopup.initStyle(StageStyle.UNDECORATED)
         themePopup.focusedProperty().addListener { observable, oldValue, newValue ->
             if (oldValue && !newValue) {
-                if (Utils.isMac()) {
+                if (isMac()) {
                     Platform.runLater { themePopup.hide() }
                 } else {
                     themePopup.hide()

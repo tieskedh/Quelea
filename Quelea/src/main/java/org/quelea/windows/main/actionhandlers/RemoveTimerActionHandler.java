@@ -25,10 +25,12 @@ import org.javafx.dialog.Dialog;
 import org.quelea.data.displayable.TimerDisplayable;
 import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.QueleaProperties;
+import org.quelea.windows.library.RefreshTimers;
 import org.quelea.windows.library.TimerListPanel;
 import org.quelea.windows.main.MainWindow;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.timer.TimerIO;
+import tornadofx.FX;
 
 /**
  * Action listener that removes the selected timer from the folder
@@ -75,7 +77,7 @@ public class RemoveTimerActionHandler implements EventHandler<ActionEvent> {
                         if (t!=null && t.getName().equals(td.getName())) {
                             file.delete();
                             Platform.runLater(() -> {
-                                QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getTimerPanel().getTimerPanel().refresh();
+                                FX.Companion.getEventbus().fire(RefreshTimers.INSTANCE);
                             });
                             i = f.listFiles().length + 1;
                         }

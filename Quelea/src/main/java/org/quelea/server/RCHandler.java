@@ -53,6 +53,7 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.utils.ThemeUtils;
 import org.quelea.windows.library.LibraryBiblePanel;
+import org.quelea.windows.library.LibraryPanel;
 import org.quelea.windows.main.LivePanel;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
@@ -62,6 +63,7 @@ import org.quelea.windows.main.schedule.ScheduleThemeNode;
 import org.quelea.windows.main.toolbars.MainToolbar;
 import org.quelea.windows.multimedia.VLCWindow;
 import org.quelea.windows.newsong.SongEntryWindow;
+import tornadofx.FX;
 
 /**
  * Handles the RemoteControlServer commands.
@@ -536,7 +538,7 @@ public class RCHandler {
         if (he.getRequestURI().toString().contains("/books/")) {
             String uri = URLDecoder.decode(he.getRequestURI().toString(), "UTF-8");
             searchString = uri.split("/books/")[1];
-            final LibraryBiblePanel lbp = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getBiblePanel();
+            final LibraryBiblePanel lbp = FX.find(LibraryPanel.class).getBiblePanel();
             boolean success = false;
             for (int i = 0; i < lbp.getBibleSelector().getItems().size(); i++) {
                 if (lbp.getBibleSelector().getItems().get(i).getBibleName().replaceAll("/", " - ").equalsIgnoreCase(searchString)) {

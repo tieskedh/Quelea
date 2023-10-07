@@ -46,9 +46,11 @@ import org.quelea.services.utils.LineTypeChecker.Type;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.utils.Chord;
 import org.quelea.windows.library.LibraryBiblePanel;
+import org.quelea.windows.library.LibraryPanel;
 import org.quelea.windows.main.LivePanel;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
+import tornadofx.FX;
 
 /**
  * The mobile lyrics server, responsible for handling the mobile HTTP calls and
@@ -445,7 +447,7 @@ public class MobileLyricsServer {
             if (running && lp.isContentShowing() && lp.getDisplayable() instanceof TextDisplayable) {
                 String response = lp.getDisplayable().getPreviewText();
                 if (lp.getDisplayable() instanceof BiblePassage) {
-                    final LibraryBiblePanel lbp = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getBiblePanel();
+                    LibraryBiblePanel lbp = FX.find(LibraryPanel.class).getBiblePanel();
                     int chapterPos = 0;
 
                     for (int i = 1; i < response.length(); i++) {

@@ -15,28 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import org.quelea.data.displayable.SongDisplayable;
-import org.quelea.windows.library.LibraryPanel;
-import org.quelea.windows.main.PreviewPanel;
-import org.quelea.windows.main.QueleaApp;
-
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import org.quelea.windows.library.LibraryPanel
+import org.quelea.windows.main.QueleaApp
+import tornadofx.FX
 
 /**
  * Action handler to preview the currently selected song in the library.
  * @author Michael
  */
-public class PreviewSongActionHandler implements EventHandler<ActionEvent> {
-
-    @Override
-    public void handle(ActionEvent t) {
-        LibraryPanel libraryPanel = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel();
-        PreviewPanel prevPanel = QueleaApp.get().getMainWindow().getMainPanel().getPreviewPanel();
-        SongDisplayable song = libraryPanel.getLibrarySongPanel().getSongList().getSelectedValue();
-        prevPanel.setDisplayable(song, 0);
+class PreviewSongActionHandler : EventHandler<ActionEvent?> {
+    override fun handle(t: ActionEvent?) {
+        val libraryPanel = FX.find<LibraryPanel>()
+        val prevPanel = QueleaApp.get().mainWindow.mainPanel.previewPanel
+        val song = libraryPanel.librarySongPanel.songList.selectedValue
+        prevPanel.setDisplayable(song, 0)
     }
-    
 }

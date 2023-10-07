@@ -15,17 +15,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.library;
+package org.quelea.windows.library
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
+import javafx.beans.value.ObservableValue
+import javafx.scene.control.TabPane
+import javafx.scene.layout.Priority
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import tornadofx.*
+import java.util.logging.Level
+
+
+object RefreshTimers : FXEvent()
+class LibraryPanelController: Controller() {
+
+    private val _timerPanelVisible = booleanProperty(
+        !get().timerDir.listFiles().isNullOrEmpty()
+    )
+    val timerPanelVisible : ObservableValue<Boolean> = _timerPanelVisible
+
+    /**
+     * Method to force the display of timers folder
+     */
+    fun forceTimer() {
+        _timerPanelVisible.set(true)
+        fire(RefreshTimers)
+    }
+}
 
 /**
  * The panel that's used to display the library of media (pictures, video) and
@@ -33,132 +50,107 @@ import org.quelea.services.utils.QueleaProperties;
  *
  * @author Michael
  */
-public class LibraryPanel extends VBox {
-
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final LibrarySongPanel songPanel;
-    private final LibraryBiblePanel biblePanel;
-    private final LibraryImagePanel imagePanel;
-    private final LibraryVideoPanel videoPanel;
-    private final LibraryTimerPanel timerPanel;
-    private final Tab timerTab;
-    private final TabPane tabPane;
-
-    /**
-     * Create a new library panel.
-     */
-    public LibraryPanel() {
-        LOGGER.log(Level.INFO, "Creating library panel");
-        tabPane = new TabPane();
-
-        LOGGER.log(Level.INFO, "Creating library song panel");
-        songPanel = new LibrarySongPanel();
-        Tab songTab = new Tab();
-        songTab.setClosable(false);
-        songTab.setText(LabelGrabber.INSTANCE.getLabel("library.songs.heading"));
-        songTab.setContent(songPanel);
-        tabPane.getTabs().add(songTab);
-
-        LOGGER.log(Level.INFO, "Creating library bible panel");
-        biblePanel = new LibraryBiblePanel();
-        Tab bibleTab = new Tab();
-        bibleTab.setClosable(false);
-        bibleTab.setText(LabelGrabber.INSTANCE.getLabel("library.bible.heading"));
-        bibleTab.setContent(biblePanel);
-        tabPane.getTabs().add(bibleTab);
-
-        LOGGER.log(Level.INFO, "Creating library image panel");
-        imagePanel = new LibraryImagePanel();
-        Tab imageTab = new Tab();
-        imageTab.setClosable(false);
-        imageTab.setText(LabelGrabber.INSTANCE.getLabel("library.image.heading"));
-        imageTab.setContent(imagePanel);
-        tabPane.getTabs().add(imageTab);
-
-        if (QueleaProperties.get().getDisplayVideoTab()) {
-            LOGGER.log(Level.INFO, "Creating library video panel");
-            videoPanel = new LibraryVideoPanel();
-            Tab videoTab = new Tab();
-            videoTab.setClosable(false);
-            videoTab.setText(LabelGrabber.INSTANCE.getLabel("library.video.heading"));
-            videoTab.setContent(videoPanel);
-            tabPane.getTabs().add(videoTab);
-        }
-        else {
-            videoPanel = null;
-        }
-
-        LOGGER.log(Level.INFO, "Creating library timer panel");
-        timerPanel = new LibraryTimerPanel();
-        timerTab = new Tab();
-        timerTab.setClosable(false);
-        timerTab.setText(LabelGrabber.INSTANCE.getLabel("library.timer.heading"));
-        timerTab.setContent(timerPanel);
-        if (QueleaProperties.get().getTimerDir().listFiles() != null
-                && QueleaProperties.get().getTimerDir().listFiles().length > 0) {
-            tabPane.getTabs().add(timerTab);
-        }
-
-        VBox.setVgrow(tabPane, Priority.ALWAYS);
-        getChildren().add(tabPane);
-    }
-
+class LibraryPanel : View() {
     /**
      * Get the library song panel.
      *
      * @return the library song panel.
      */
-    public LibrarySongPanel getLibrarySongPanel() {
-        return songPanel;
-    }
-
+    lateinit var librarySongPanel: LibrarySongPanel
+        private set
     /**
      * Get the library bible panel.
      *
      * @return the library bible panel.
      */
-    public LibraryBiblePanel getBiblePanel() {
-        return biblePanel;
-    }
-
+    lateinit var biblePanel: LibraryBiblePanel
+        private set
     /**
      * Get the library image panel.
      *
      * @return the library image panel.
      */
-    public LibraryImagePanel getImagePanel() {
-        return imagePanel;
-    }
+    lateinit var imagePanel: LibraryImagePanel
+        private set
 
     /**
      * Get the library video panel.
      *
      * @return the library video panel.
      */
-    public LibraryVideoPanel getVideoPanel() {
-        return videoPanel;
-    }
-
+    var videoPanel: LibraryVideoPanel? = null
+        private set
     /**
      * Get the library timer panel.
      *
      * @return the library timer panel.
      */
-    public LibraryTimerPanel getTimerPanel() {
-        return timerPanel;
-    }
+    lateinit var timerPanel: LibraryTimerPanel
+        private set
 
-    /**
-     * Method to force the display of timers folder
-     */
-    public void forceTimer() {
-        if (!tabPane.getTabs().contains(timerTab)) {
-            tabPane.getTabs().add(timerTab);
+    lateinit var tabPane: TabPane
+        private set
+
+
+    val controller by inject<LibraryPanelController>()
+
+
+    override val root = vbox {
+        LOGGER.log(Level.INFO, "Creating library panel")
+        tabPane = tabpane {
+            vboxConstraints {
+                vGrow = Priority.ALWAYS
+            }
+
+            tab(
+                LabelGrabber.INSTANCE.getLabel("library.songs.heading")
+            ) {
+                LOGGER.log(Level.INFO, "Creating library song panel")
+                librarySongPanel = opcr(this, LibrarySongPanel())
+            }
+
+            tab(
+                LabelGrabber.INSTANCE.getLabel("library.bible.heading")
+            ) {
+                isClosable = false
+
+                LOGGER.log(Level.INFO, "Creating library bible panel")
+                biblePanel = opcr(this, LibraryBiblePanel())
+            }
+
+            tab(
+                LabelGrabber.INSTANCE.getLabel("library.image.heading")
+            ) {
+                isClosable = false
+                LOGGER.log(Level.INFO, "Creating library image panel")
+                imagePanel = opcr(this, LibraryImagePanel())
+            }
+
+            if (get().displayVideoTab) tab(
+                LabelGrabber.INSTANCE.getLabel("library.video.heading")
+            ) {
+                isClosable = false
+                LOGGER.log(Level.INFO, "Creating library video panel")
+                videoPanel = opcr(this, LibraryVideoPanel())
+            }
+
+            tab(
+                LabelGrabber.INSTANCE.getLabel("library.timer.heading")
+            ) {
+                isClosable = false
+                LOGGER.log(Level.INFO, "Creating library timer panel")
+                timerPanel = opcr(this, LibraryTimerPanel())
+                subscribe<RefreshTimers> {
+                    timerPanel.timerPanel.refresh()
+                }
+                visibleWhen(controller.timerPanelVisible)
+            }
         }
-        timerPanel.getTimerPanel().refresh();
     }
 
-    public TabPane getTabPane() {
-        return tabPane;
+
+
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
     }
 }

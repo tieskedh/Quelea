@@ -22,7 +22,7 @@ import javafx.event.EventHandler
 import org.quelea.data.VideoBackground
 import org.quelea.data.displayable.SongDisplayable
 import org.quelea.services.utils.QueleaProperties.Companion.get
-import org.quelea.services.utils.Utils
+import org.quelea.services.utils.getVidBlankImage
 import org.quelea.utils.javaTrim
 import org.quelea.windows.main.QueleaApp
 import kotlin.concurrent.thread
@@ -69,7 +69,7 @@ class AddSongActionHandler(private val updateInDB: Boolean) : EventHandler<Actio
             ?: return
 
         thread {
-            Utils.getVidBlankImage(background.getVideoFile()) //cache it
+            background.getVideoFile().getVidBlankImage() //cache it
         }
     }
 }
