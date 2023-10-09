@@ -25,10 +25,7 @@ import org.javafx.dialog.Dialog;
 import org.quelea.data.displayable.TimerDisplayable;
 import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.QueleaProperties;
-import org.quelea.windows.library.TimerListController;
-import org.quelea.windows.library.TimerListPanel;
-import org.quelea.windows.main.MainWindow;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.library.LibraryTimerController;
 import org.quelea.windows.timer.TimerIO;
 import tornadofx.FX;
 
@@ -48,16 +45,9 @@ public class RemoveTimerActionHandler implements EventHandler<ActionEvent> {
      */
     @Override
     public void handle(ActionEvent t) {
-        MainWindow mainWindow = QueleaApp.get().getMainWindow();
-        final TimerListPanel tlp = mainWindow.getMainPanel().getLibraryPanel().getTimerPanel().getTimerPanel();
-        int index = tlp.getListView().getSelectionModel().getSelectedIndex();
-        if (index == -1) {
-            return;
-        }
-        final TimerDisplayable td = tlp.getListView().itemsProperty().get().get(index);
-        if (td == null) {
-            return;
-        }
+        final TimerDisplayable td =  FX.find(LibraryTimerController.class).getSelectedItem();
+        if (td == null) return;
+
         yes = false;
         Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("confirm.remove.text"),
                 LabelGrabber.INSTANCE.getLabel("confirm.remove.timer").replace("$1", td.getName()))
@@ -77,7 +67,7 @@ public class RemoveTimerActionHandler implements EventHandler<ActionEvent> {
                         if (t!=null && t.getName().equals(td.getName())) {
                             file.delete();
                             Platform.runLater(() -> {
-                                FX.find(TimerListController.class).refreshTimers();
+                                FX.find(LibraryTimerController.class).refreshTimers();
                             });
                             i = f.listFiles().length + 1;
                         }

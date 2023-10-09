@@ -15,154 +15,110 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.library;
+package org.quelea.windows.library
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.geometry.Orientation;
-import javafx.scene.control.Button;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.stage.FileChooser;
-import org.javafx.dialog.Dialog;
-import org.quelea.data.displayable.TimerDisplayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.FileFilters;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.actionhandlers.AddTimerActionHandler;
-import org.quelea.windows.main.actionhandlers.RemoveTimerActionHandler;
-import tornadofx.FX;
-
-import static org.quelea.windows.library.TimerListPanelKt.findTimerListController;
+import javafx.geometry.Orientation
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.stage.FileChooser
+import org.javafx.dialog.Dialog
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.FileFilters
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.setToolbarButtonStyle
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.actionhandlers.AddTimerActionHandler
+import org.quelea.windows.main.actionhandlers.RemoveTimerActionHandler
+import tornadofx.*
+import java.io.File
 
 /**
  * The timer panel in the library.
- * <p/>
+ *
+ * @constructor Create a new library timer panel.
  * @author Ben
  */
-public class LibraryTimerPanel extends BorderPane {
+class LibraryTimerPanel : View() {
+    private val timerListControl = find<LibraryTimerController>(
+        "dir" to get().timerDir.absolutePath
+    )
 
-    private final TimerListPanel timerPanel;
-    private final ToolBar toolbar;
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final Button removeButton;
+    override val root = borderpane {
+        center {
+            add<TimerListPanel>(
+                TimerListPanel.CONTROLLER_PARAM to timerListControl
+            )
+        }
+        left {
+            hbox {
+                toolbar{
+                    orientation = Orientation.VERTICAL
 
-    /**
-     * Create a new library timer panel.
-     */
-    public LibraryTimerPanel() {
-        TimerListController timerListControl = findTimerListController(
-                QueleaProperties.get().getTimerDir().getAbsolutePath()
-        );
-        timerPanel = new TimerListPanel(timerListControl);
-        setCenter(timerPanel.getRoot());
-        toolbar = new ToolBar();
+//                  addButton
+                    button("", ImageView(Image("file:icons/add.png"))) {
+                        tooltip(LabelGrabber.INSTANCE.getLabel("add.timers.panel"))
+                        onAction = AddTimerActionHandler()
+                        setToolbarButtonStyle()
+                    }
 
-        timerPanel.getListView().getSelectionModel().selectedIndexProperty().addListener((ObservableValue<? extends Number> observable, Number oldValue, Number newValue) -> {
-            checkRemoveButton();
-        });
-        timerPanel.getListView().itemsProperty().addListener((ObservableValue<? extends ObservableList<TimerDisplayable>> observable, ObservableList<TimerDisplayable> oldValue, ObservableList<TimerDisplayable> newValue) -> {
-            checkRemoveButton();
-        });
+//                  importButton
+                    button(
+                        graphic = ImageView(Image("file:icons/importbw.png"))
+                    ){
+                        tooltip(LabelGrabber.INSTANCE.getLabel("import.heading"))
+                        setToolbarButtonStyle()
 
-        Button addButton = new Button("", new ImageView(new Image("file:icons/add.png")));
-        addButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("add.timers.panel")));
-        addButton.setOnAction(new AddTimerActionHandler());
-        
-        Button importButton = new Button("", new ImageView(new Image("file:icons/importbw.png")));
-        importButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("import.heading")));
-        importButton.setOnAction((ActionEvent t) -> {
-            FileChooser chooser = new FileChooser();
-            if (QueleaProperties.get().getLastDirectory() != null) {
-                chooser.setInitialDirectory(QueleaProperties.get().getLastDirectory());
-            }
-            chooser.getExtensionFilters().add(FileFilters.TIMERS);
-            chooser.setInitialDirectory(QueleaProperties.get().getTimerDir().getAbsoluteFile());
-            List<File> files = chooser.showOpenMultipleDialog(QueleaApp.get().getMainWindow());
-            if (files != null) {
-                final boolean[] refresh = new boolean[]{false};
-                for (final File f : files) {
-                    QueleaProperties.get().setLastDirectory(f.getParentFile());
-                    try {
-                        final Path sourceFile = f.getAbsoluteFile().toPath();
-
-                        if (new File(timerListControl.getDir(), f.getName()).exists()) {
-                            Dialog d = Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("confirm.overwrite.title"), f.getName() + "\n" + LabelGrabber.INSTANCE.getLabel("confirm.overwrite.text"))
-                                    .addLabelledButton(LabelGrabber.INSTANCE.getLabel("file.replace.button"), (ActionEvent t1) -> {
-                                        try {
-                                            Files.delete(Paths.get(timerListControl.getDir(), f.getName()));
-                                            Files.copy(sourceFile, Paths.get(timerListControl.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
-                                            refresh[0] = true;
-                                        } catch (IOException e) {
-                                            LOGGER.log(Level.WARNING, "Could not delete or copy file back into directory.", e);
-                                        }
-                                    }).addLabelledButton(LabelGrabber.INSTANCE.getLabel("file.continue.button"), (ActionEvent t1) -> {
-                                        // DO NOTHING
-                                    }).build();
-                            d.showAndWait();
-                        } else {
-                            Files.copy(sourceFile, Paths.get(timerListControl.getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
-                            refresh[0] = true;
+                        setOnAction {
+                            timerFileChooser()?.let {files->
+                                timerListControl.import(files, ::confirmOverride)
+                            }
                         }
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.WARNING, "Could not copy file into TimerPanel from FileChooser selection", ex);
+                    }
+
+//                  removeButton
+                    button(
+                        graphic = ImageView(Image("file:icons/removedb.png"))
+                    ){
+                        setToolbarButtonStyle()
+                        disableWhen(timerListControl.selectedTimerProperty.isNull)
+                        tooltip(LabelGrabber.INSTANCE.getLabel("remove.timer.text"))
+                        onAction = RemoveTimerActionHandler()
                     }
                 }
-                if (refresh[0]) {
-                    timerListControl.refreshTimers();
-                }
             }
-        });
-        ImageView removeIV = new ImageView(new Image("file:icons/removedb.png"));
-        removeButton = new Button("", removeIV);
-        Utils.setToolbarButtonStyle(removeButton);
-        removeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("remove.timer.text")));
-        removeButton.setDisable(true);
-        removeButton.setOnAction(new RemoveTimerActionHandler());
-        HBox toolbarBox = new HBox();
-        toolbar.setOrientation(Orientation.VERTICAL);
-        toolbarBox.getChildren().add(toolbar);
-        Utils.setToolbarButtonStyle(addButton);
-        Utils.setToolbarButtonStyle(importButton);
-        toolbar.getItems().addAll(addButton, importButton, removeButton);
-        setLeft(toolbarBox);
-    }
-
-    /**
-     * Get the timer list panel.
-     * <p/>
-     * @return the timer list panel.
-     */
-    public TimerListPanel getTimerPanel() {
-        return timerPanel;
-    }
-
-    /**
-     * Check whether the remove button should be enabled or disabled and set it
-     * accordingly.
-     */
-    private void checkRemoveButton() {
-        if (timerPanel.getListView().getSelectionModel().selectedIndexProperty().getValue() == -1 || timerPanel.getListView().itemsProperty().get().size() == 0) {
-            removeButton.setDisable(true);
-        } else {
-            removeButton.setDisable(false);
         }
+    }
+
+    /*
+    * KOTLINIZE: do you want to set and immediately replace the value of initialDirectory?
+    * else chooseFile(
+    *      filters = arrayOf(FileFilters.TIMERS),
+    *      initialDirectory = get().lastDirectory ?: get().timerDir.absoluteFile,
+    *      FileChooserMode.Multi,
+    *      owner = QueleaApp.get().mainWindow
+    *  )
+    */
+    private fun timerFileChooser(): List<File>? {
+        val chooser = FileChooser()
+        if (get().lastDirectory != null) {
+            chooser.initialDirectory = get().lastDirectory
+        }
+        chooser.extensionFilters.add(FileFilters.TIMERS)
+        chooser.initialDirectory = get().timerDir.getAbsoluteFile()
+        return chooser.showOpenMultipleDialog(QueleaApp.get().mainWindow)
+    }
+
+    private fun confirmOverride(fileName : String) : Boolean{
+        var replace = false
+        val d = Dialog.buildConfirmation(
+            LabelGrabber.INSTANCE.getLabel("confirm.overwrite.title"),
+            fileName + "\n" + LabelGrabber.INSTANCE.getLabel("confirm.overwrite.text")
+        ).addLabelledButton(LabelGrabber.INSTANCE.getLabel("file.replace.button")) {
+            replace= true
+        }.addLabelledButton(LabelGrabber.INSTANCE.getLabel("file.continue.button")) {}
+            .build()
+        d.showAndWait()
+
+        return replace
     }
 }

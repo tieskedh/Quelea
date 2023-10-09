@@ -18,7 +18,6 @@
 package org.quelea.windows.library
 
 import javafx.scene.control.ContextMenu
-import javafx.scene.control.ListView
 import javafx.scene.control.cell.TextFieldListCell
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
@@ -26,88 +25,11 @@ import javafx.scene.input.TransferMode
 import javafx.util.StringConverter
 import org.quelea.data.displayable.TimerDisplayable
 import org.quelea.services.languages.LabelGrabber
-import org.quelea.services.utils.LoggerUtils
 import org.quelea.services.utils.bindSingleSelectedBidirectional
-import org.quelea.services.utils.isTimer
 import org.quelea.windows.main.actionhandlers.RemoveTimerActionHandler
-import org.quelea.windows.main.schedule.SchedulePanel
-import org.quelea.windows.timer.TimerIO
 import tornadofx.*
-import java.io.File
-import java.io.IOException
-import java.nio.file.Path
-import java.nio.file.StandardCopyOption
-import java.util.logging.Level
-import kotlin.concurrent.thread
-import kotlin.io.path.copyTo
 
 
-fun findTimerListController(
-    dir : String
-) = find<TimerListController>(params = mapOf("dir" to dir))
-class TimerListController : Controller() {
-    var dir: String = params.getValue("dir") as String
-
-    val items = observableListOf<TimerDisplayable>()
-    private var updateThread: Thread? = null
-
-    val selectedTimerProperty = objectProperty<TimerDisplayable>()
-    val selectedItem by selectedTimerProperty
-
-
-    fun filesDraggedToTimerList(files: List<File>) {
-        files.filter { it.isTimer() && !it.isDirectory() }
-            .forEach { f ->
-                try {
-                    f.absoluteFile.toPath().copyTo(
-                        Path.of(dir, f.name),
-                        StandardCopyOption.COPY_ATTRIBUTES
-                    )
-                } catch (ex: IOException) {
-                    LoggerUtils.getLogger().log(
-                        Level.WARNING,
-                        "Could not copy file into TimerPanel through system drag and drop.",
-                        ex
-                    )
-                }
-                updateTimers()
-            }
-    }
-
-    /**
-     * Add the files.
-     *
-     *
-     */
-    private fun updateTimers() {
-        items.clear()
-        val files = File(dir).listFiles() ?: return
-        if (updateThread != null && updateThread!!.isAlive) return
-
-        updateThread = thread {
-            files.forEach {
-                runLater {
-                    val timer = TimerIO.timerFromFile(it)
-                    if (timer != null) items.add(timer)
-                }
-            }
-        }
-    }
-
-
-    fun addSelectedToSchedule() {
-        FX.find<SchedulePanel>().scheduleList.add(selectedItem)
-    }
-
-    /**
-     * Refresh the contents of this video list panel.
-     */
-    fun refreshTimers() = updateTimers()
-
-    fun changeDir(absoluteFile: File) {
-        dir = absoluteFile.absolutePath
-    }
-}
 
 /**
  * The panel displayed on the library to select the list of videos...
@@ -117,17 +39,15 @@ class TimerListController : Controller() {
  *
  * @author Ben
  */
-class TimerListPanel(
-    private val timerController : TimerListController
-) : View() {
-    lateinit var listView: ListView<TimerDisplayable>
-        private set
+class TimerListPanel : View() {
+    private val timerController = params[CONTROLLER_PARAM] as LibraryTimerController
 
     override val root = borderpane {
         center {
             scrollpane(fitToWidth = true) {
-                listView = listview(timerController.items) {
+                listview(timerController.items) {
                     bindSingleSelectedBidirectional(timerController.selectedTimerProperty)
+                    selectionModel.selectedIndexProperty()
                     setOnDragOver { it.acceptTransferModes(*TransferMode.COPY_OR_MOVE) }
                     onDoubleClick(timerController::addSelectedToSchedule)
 
@@ -158,6 +78,8 @@ class TimerListPanel(
     init { timerController.refreshTimers() }
 
     companion object {
+        const val CONTROLLER_PARAM = "controller"
+
         private const val BORDER_STYLE_SELECTED =
             "-fx-padding: 0.2em;-fx-border-color: #0093ff;-fx-border-radius: 5;-fx-border-width: 0.1em;"
         private const val BORDER_STYLE_DESELECTED =

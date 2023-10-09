@@ -28,7 +28,7 @@ import java.util.logging.Level
 
 
 class LibraryPanelController: Controller() {
-    private val controller = find<TimerListController>()
+    private val controller = find<LibraryTimerController>()
     private val _timerPanelVisible = booleanProperty(
         !get().timerDir.listFiles().isNullOrEmpty()
     )
@@ -78,13 +78,6 @@ class LibraryPanel : View() {
      * @return the library video panel.
      */
     var videoPanel: LibraryVideoPanel? = null
-        private set
-    /**
-     * Get the library timer panel.
-     *
-     * @return the library timer panel.
-     */
-    lateinit var timerPanel: LibraryTimerPanel
         private set
 
     lateinit var tabPane: TabPane
@@ -138,7 +131,7 @@ class LibraryPanel : View() {
             ) {
                 isClosable = false
                 LOGGER.log(Level.INFO, "Creating library timer panel")
-                timerPanel = opcr(this, LibraryTimerPanel())
+                add<LibraryTimerPanel>()
                 visibleWhen(controller.timerPanelVisible)
             }
         }
