@@ -15,170 +15,118 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.library;
+package org.quelea.windows.library
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.logging.Level;
-import javafx.application.Platform;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.TransferMode;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.TilePane;
-import org.javafx.dialog.Dialog;
-import org.quelea.data.displayable.ImageDisplayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.ImageManager;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
+import javafx.geometry.Orientation
+import javafx.geometry.Pos
+import javafx.scene.Node
+import javafx.scene.input.*
+import javafx.scene.layout.TilePane
+import org.javafx.dialog.Dialog
+import org.quelea.services.languages.LabelGrabber
+import tornadofx.*
 
 /**
  * The panel displayed on the library to select the list of images.
- * <p/>
+ *
+ *
  * @author Michael
+ * @property dir the absolute path of the currently selected directory
+ *
+ * @constructor Create a new image list panel.
+ * @param dir the directory to use.
  */
-public class ImageListPanel extends BorderPane {
 
-    private static final String BORDER_STYLE_SELECTED = "-fx-padding: 0.2em;-fx-border-color: #0093ff;-fx-border-radius: 5;-fx-border-width: 0.1em;";
-    private static final String BORDER_STYLE_DESELECTED = "-fx-padding: 0.2em;-fx-border-color: rgb(0,0,0,0);-fx-border-radius: 5;-fx-border-width: 0.1em;";
-    private final TilePane imageList;
-    private String dir;
-    private Thread updateThread;
+class ImageListPanel : View() {
+    private lateinit var imageList: TilePane
 
-    /**
-     * Create a new image list panel.
-     * <p/>
-     * @param dir the directory to use.
-     */
-    public ImageListPanel(String dir) {
-        this.dir = dir;
-        imageList = new TilePane();
-        imageList.setAlignment(Pos.CENTER);
-        imageList.setHgap(15);
-        imageList.setVgap(15);
-        imageList.setOrientation(Orientation.HORIZONTAL);
-        imageList.setOnDragOver(dragEvent -> dragEvent.acceptTransferModes(TransferMode.COPY_OR_MOVE));
-        imageList.setOnDragDropped(dragEvent -> {
-            if(dragEvent.getGestureSource() == null) {
-                Clipboard cb = dragEvent.getDragboard();
-                if(cb.hasFiles()) {
-                    List<File> files = cb.getFiles();
-                    for(File f : files) {
-                        if(Utils.fileIsImage(f) && !f.isDirectory()) {
-                            try {
-                                Files.copy(f.getAbsoluteFile().toPath(), Paths.get(getDir(), f.getName()), StandardCopyOption.COPY_ATTRIBUTES);
-                            }
-                            catch(IOException ex) {
-                                LoggerUtils.getLogger().log(Level.WARNING, "Could not copy file into ImagePanel through system drag and drop.", ex);
+    val controller = find<LibraryImageController>(
+        "imageLoader" to ImageLoader(160.0, 90.0)
+    )
+
+    override val root = borderpane {
+        val borderPane = this
+        center {
+            scrollpane(fitToWidth = true) {
+                imageList = tilepane {
+                    alignment = Pos.CENTER
+                    hgap = 15.0
+                    vgap = 15.0
+                    orientation = Orientation.HORIZONTAL
+                    setOnDragOver { it.acceptTransferModes(*TransferMode.COPY_OR_MOVE) }
+
+                    setOnDragDropped { event ->
+                        if (event.gestureSource == null)
+                            event.dragboard.files
+                                ?.let(controller::importDraggedImageFiles)
+                    }
+
+
+                    bindChildren(controller.imageItems){ loadedImage->
+                        hbox {
+                            setupHover()
+
+                            imageview(loadedImage.preview) {
+                                isPreserveRatio = true
+                                fitWidth = 160.0
+                                fitHeight = 90.0
+                                contextmenu {
+                                    item(
+                                        LabelGrabber.INSTANCE.getLabel("remove.image.text")
+                                    ).action {
+                                        controller.delete(loadedImage, ::confirmDelete)
+                                    }
+                                }
+                                onDoubleClick {
+                                    controller.addToSchedule(loadedImage)
+                                }
+
+                                setOnDragDetected {
+                                    val db = borderPane.startDragAndDrop(*TransferMode.ANY)
+                                    val content = ClipboardContent()
+                                    content.putString(loadedImage.file.absolutePath)
+                                    db.setContent(content)
+                                    it.consume()
+                                }
                             }
                         }
                     }
+
                 }
             }
-        });
-        updateImages();
-        ScrollPane scroll = new ScrollPane();
-        scroll.setFitToWidth(true);
-        scroll.setContent(imageList);
-        setCenter(scroll);
-    }
-
-    /**
-     * Returns the absolute path of the currently selected directory
-     * <p/>
-     */
-    public String getDir() {
-        return dir;
-    }
-
-    /**
-     * Refresh the contents of this image list panel.
-     */
-    public void refresh() {
-        updateImages();
-    }
-
-    /**
-     * Add the files.
-     * <p/>
-     */
-    private void updateImages() {
-        imageList.getChildren().clear();
-        final File[] files = new File(dir).listFiles();
-        if(updateThread != null && updateThread.isAlive()) {
-            return;
         }
-        updateThread = new Thread(() -> {
-            for(final File file : files) {
-                if(Utils.fileIsImage(file) && !file.isDirectory()) {
-                    final HBox viewBox = new HBox();
-                    final ImageView view = new ImageView(ImageManager.INSTANCE.getImage(file.toURI().toString(), 160, 90, false));
-                    view.setPreserveRatio(true);
-                    view.setFitWidth(160);
-                    view.setFitHeight(90);
-                    view.setOnMouseClicked((MouseEvent t) -> {
-                        if(t.getButton() == MouseButton.PRIMARY && t.getClickCount() > 1) {
-                            QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().add(new ImageDisplayable(file));
-                        }
-                        else if(t.getButton() == MouseButton.SECONDARY) {
-                            ContextMenu removeMenu = new ContextMenu();
-                            MenuItem removeItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("remove.image.text"));
-                            removeItem.setOnAction(actionEvent -> {
-                                final boolean[] reallyDelete = new boolean[]{false};
-                                Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("delete.image.title"),
-                                        LabelGrabber.INSTANCE.getLabel("delete.image.confirmation"))
-                                        .addYesButton(actionEvent1 -> reallyDelete[0] = true)
-                                        .addNoButton(actionEvent1 -> {
-                                        }).build().showAndWait();
-                                if(reallyDelete[0]) {
-                                    file.delete();
-                                    imageList.getChildren().remove(viewBox);
-                                }
-                            });
-                            removeMenu.getItems().add(removeItem);
-                            removeMenu.show(view, t.getScreenX(), t.getScreenY());
-                        }
-                    });
-                    view.setOnDragDetected(mouseEvent -> {
-                        Dragboard db = startDragAndDrop(TransferMode.ANY);
-                        ClipboardContent content = new ClipboardContent();
-                        content.putString(file.getAbsolutePath());
-                        db.setContent(content);
-                        mouseEvent.consume();
-                    });
-                    viewBox.getChildren().add(view);
-                    setupHover(viewBox);
-                    Platform.runLater(() -> imageList.getChildren().add(viewBox));
-                }
-            }
-        });
-        updateThread.start();
+    }
+    init { controller.refresh() }
+
+
+    fun confirmDelete(): Boolean {
+        var reallyDelete = false
+        val dialog = Dialog.buildConfirmation(
+            LabelGrabber.INSTANCE.getLabel("delete.image.title"),
+            LabelGrabber.INSTANCE.getLabel("delete.image.confirmation")
+        )
+            .addYesButton { reallyDelete = true }
+            .addNoButton {  }
+            .build()
+
+        dialog.showAndWait()
+        return reallyDelete
     }
 
-    private void setupHover(final Node view) {
-        view.setStyle(BORDER_STYLE_DESELECTED);
-        view.setOnMouseEntered(mouseEvent -> view.setStyle(BORDER_STYLE_SELECTED));
-        view.setOnMouseExited(mouseEvent -> view.setStyle(BORDER_STYLE_DESELECTED));
+    private fun Node.setupHover() {
+        style = BORDER_STYLE_DESELECTED
+        setOnMouseEntered {
+            style = BORDER_STYLE_SELECTED
+        }
+        setOnMouseExited {
+            style = BORDER_STYLE_DESELECTED
+        }
     }
 
-    public void changeDir(File absoluteFile) {
-        dir = absoluteFile.getAbsolutePath();
+    companion object {
+        private const val BORDER_STYLE_SELECTED =
+            "-fx-padding: 0.2em;-fx-border-color: #0093ff;-fx-border-radius: 5;-fx-border-width: 0.1em;"
+        private const val BORDER_STYLE_DESELECTED =
+            "-fx-padding: 0.2em;-fx-border-color: rgb(0,0,0,0);-fx-border-radius: 5;-fx-border-width: 0.1em;"
     }
 }

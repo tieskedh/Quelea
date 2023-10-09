@@ -64,13 +64,6 @@ class LibraryPanel : View() {
      */
     lateinit var biblePanel: LibraryBiblePanel
         private set
-    /**
-     * Get the library image panel.
-     *
-     * @return the library image panel.
-     */
-    lateinit var imagePanel: LibraryImagePanel
-        private set
 
     /**
      * Get the library video panel.
@@ -94,6 +87,7 @@ class LibraryPanel : View() {
                 vGrow = Priority.ALWAYS
             }
 
+
             tab(
                 LabelGrabber.INSTANCE.getLabel("library.songs.heading")
             ) {
@@ -110,12 +104,13 @@ class LibraryPanel : View() {
                 biblePanel = opcr(this, LibraryBiblePanel())
             }
 
+
             tab(
                 LabelGrabber.INSTANCE.getLabel("library.image.heading")
             ) {
                 isClosable = false
                 LOGGER.log(Level.INFO, "Creating library image panel")
-                imagePanel = opcr(this, LibraryImagePanel())
+                add<LibraryImagePanel>()
             }
 
             if (get().displayVideoTab) tab(

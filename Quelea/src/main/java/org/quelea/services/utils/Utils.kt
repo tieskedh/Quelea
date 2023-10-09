@@ -662,7 +662,8 @@ fun BufferedImage.resizeImage(width: Int, height: Int): BufferedImage {
  * @receiver the file to check.
  * @return true if the file is an image, false otherwise.
  */
-fun File.fileIsImage(): Boolean = (isDirectory() && !isHidden()) ||
+@JvmName("fileIsImage")
+fun File.isImage(): Boolean = (isDirectory() && !isHidden()) ||
         this.extensionMatchesAny(getImageExtensions())
 
 /**
