@@ -27,8 +27,10 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import org.hibernate.ObjectNotFoundException;
 import org.hibernate.Session;
+import org.jetbrains.annotations.Nullable;
 import org.quelea.data.ThemeDTO;
 import org.quelea.data.db.model.Song;
 import org.quelea.data.db.model.Theme;
@@ -37,7 +39,6 @@ import org.quelea.data.displayable.TextSection;
 import org.quelea.services.lucene.SongSearchIndex;
 import org.quelea.services.utils.DatabaseListener;
 import org.quelea.services.utils.LoggerUtils;
-import org.quelea.windows.main.widgets.LoadingPane;
 
 /**
  * Manage songs persistent operations.
@@ -115,7 +116,7 @@ public final class SongManager {
      * <p/>
      * @return an array of all the songs in the database.
      */
-    public synchronized SongDisplayable[] getSongs(LoadingPane loadingPane) {
+    public synchronized SongDisplayable[] getSongs(@Nullable DoubleProperty loadingProp) {
         if (cacheSongs.get() != null) {
             return cacheSongs.get();
         }
@@ -124,9 +125,9 @@ public final class SongManager {
             List<Song> songsList = new SongDao(session).getSongs();
             for (int si = 0; si < songsList.size(); si++) {
                 final int finalSi = si;
-                if (loadingPane != null) {
+                if (loadingProp != null) {
                     Platform.runLater(() -> {
-                        loadingPane.setProgress((double) finalSi / songsList.size());
+                        loadingProp.set((double) finalSi / songsList.size());
                     });
                 }
                 Song song = songsList.get(si);
@@ -162,9 +163,9 @@ public final class SongManager {
                 songDisplayable.setTheme(themedto);
                 songs.add(songDisplayable);
             }
-            if (loadingPane != null) {
+            if (loadingProp != null) {
                 Platform.runLater(() -> {
-                    loadingPane.setProgress(-1);
+                    loadingProp.set(-1);
                 });
             }
         });

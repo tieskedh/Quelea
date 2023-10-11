@@ -20,7 +20,7 @@ package org.quelea.windows.main.widgets;
 
 import javafx.scene.control.MenuItem;
 import org.quelea.data.displayable.SongDisplayable;
-import org.quelea.windows.library.LibrarySongList;
+import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.schedule.ScheduleList;
@@ -78,12 +78,12 @@ public class ButtonChecker {
      */
     public void checkAddButton(MenuItem addSongButton) {
         final MainPanel mainPanel = QueleaApp.get().getMainWindow().getMainPanel();
-        final LibrarySongList songList = mainPanel.getLibraryPanel().getLibrarySongPanel().getSongList();
-        if(!songList.focusedProperty().get()) {
+        final LibrarySongController listSongController = mainPanel.getLibraryPanel().getLibrarySongPanel().getSongController();
+        if(!listSongController.isFocused()) {
             addSongButton.setDisable(true);
             return;
         }
-        if(songList.getListView().getSelectionModel().getSelectedIndex() == -1) {
+        if(listSongController.getSelectedValue() == null) {
             addSongButton.setDisable(true);
         }
         else {

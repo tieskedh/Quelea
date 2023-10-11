@@ -19,7 +19,7 @@ package org.quelea.windows.library;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
+import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -44,6 +44,7 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.actionhandlers.NewSongActionHandler;
 import org.quelea.windows.main.actionhandlers.RemoveSongDBActionHandler;
+import tornadofx.FX;
 
 /**
  * The panel used for browsing the database of songs and adding any songs to the
@@ -56,7 +57,7 @@ public class LibrarySongPanel extends BorderPane {
 
     private final TextField searchBox;
     private final Button searchCancelButton;
-    private final LibrarySongList songList;
+    private final LibrarySongController songController;
     private final Button removeButton;
     private final Button addButton;
 
@@ -65,19 +66,12 @@ public class LibrarySongPanel extends BorderPane {
      */
     public LibrarySongPanel() {
         boolean darkTheme = QueleaProperties.get().getUseDarkTheme();
-        songList = new LibrarySongList(true);
-        songList.getListView().getSelectionModel().selectedIndexProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> ov, Number t, Number t1) {
-                checkRemoveButton();
-            }
-        });
-        songList.getListView().itemsProperty().addListener(new ChangeListener<ObservableList<SongDisplayable>>() {
-            @Override
-            public void changed(ObservableValue<? extends ObservableList<SongDisplayable>> ov, ObservableList<SongDisplayable> t, ObservableList<SongDisplayable> t1) {
-                checkRemoveButton();
-            }
-        });
+        LibrarySongList songList = LibrarySongList.create(true);
+        songController = FX.find(LibrarySongController.class);
+        songController.getSelectedValueProp().addListener((ov, t, t1) -> checkRemoveButton());
+        songController.getItems().addListener(
+                (ListChangeListener<SongDisplayable>) c -> checkRemoveButton()
+        );
         ScrollPane listScrollPane = new ScrollPane();
         setCenter(listScrollPane);
 
@@ -101,7 +95,7 @@ public class LibrarySongPanel extends BorderPane {
             @Override
             public void changed(ObservableValue<? extends String> ov, String t, String t1) {
                 searchCancelButton.setDisable(searchBox.getText().isEmpty());
-                songList.filter(searchBox.getText());
+                songController.filter(searchBox.getText());
             }
         });
         northPanel.getChildren().add(searchBox);
@@ -140,7 +134,7 @@ public class LibrarySongPanel extends BorderPane {
         removeButton.setOnAction(new RemoveSongDBActionHandler());
         toolbar.getItems().add(removeButton);
         setLeft(toolbar);
-        setCenter(songList);
+        setCenter(songList.getRoot());
 
     }
 
@@ -149,11 +143,7 @@ public class LibrarySongPanel extends BorderPane {
      * accordingly.
      */
     private void checkRemoveButton() {
-        if (songList.getListView().getSelectionModel().selectedIndexProperty().getValue() == -1 || songList.getListView().itemsProperty().get().size() == 0) {
-            removeButton.setDisable(true);
-        } else {
-            removeButton.setDisable(false);
-        }
+        removeButton.setDisable(songController.getSelectedValue() == null);
     }
 
     /**
@@ -162,8 +152,8 @@ public class LibrarySongPanel extends BorderPane {
      *
      * @return the song list.
      */
-    public LibrarySongList getSongList() {
-        return songList;
+    public LibrarySongController getSongController() {
+        return songController;
     }
 
     /**

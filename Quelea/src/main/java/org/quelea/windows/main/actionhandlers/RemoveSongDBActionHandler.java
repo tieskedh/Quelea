@@ -24,9 +24,8 @@ import org.javafx.dialog.Dialog;
 import org.quelea.data.db.SongManager;
 import org.quelea.data.displayable.SongDisplayable;
 import org.quelea.services.languages.LabelGrabber;
-import org.quelea.windows.library.LibrarySongList;
-import org.quelea.windows.main.MainWindow;
-import org.quelea.windows.main.QueleaApp;
+import org.quelea.windows.library.LibrarySongController;
+import tornadofx.FX;
 
 /**
  * Action listener that removes the selected song from the database.
@@ -44,13 +43,8 @@ public class RemoveSongDBActionHandler implements EventHandler<ActionEvent> {
      */
     @Override
     public void handle(ActionEvent t) {
-        MainWindow mainWindow = QueleaApp.get().getMainWindow();
-        final LibrarySongList songList = mainWindow.getMainPanel().getLibraryPanel().getLibrarySongPanel().getSongList();
-        int index = songList.getListView().getSelectionModel().getSelectedIndex();
-        if(index == -1) {
-            return;
-        }
-        final SongDisplayable song = songList.getListView().itemsProperty().get().get(index);
+        final LibrarySongController librarySongController = FX.find(LibrarySongController.class);
+        final SongDisplayable song = librarySongController.getSelectedValue();
         if(song == null) {
             return;
         }
@@ -68,7 +62,7 @@ public class RemoveSongDBActionHandler implements EventHandler<ActionEvent> {
             }
         }).build().showAndWait();
         if(yes) {
-            songList.setLoading(true);
+            librarySongController.setLoading(true);
             new Thread() {
                 @Override
                 public void run() {
@@ -86,8 +80,8 @@ public class RemoveSongDBActionHandler implements EventHandler<ActionEvent> {
 
                             @Override
                             public void run() {
-                                songList.getListView().itemsProperty().get().remove(song);
-                                songList.setLoading(false);
+                                librarySongController.getItems().remove(song);
+                                librarySongController.setLoading(false);
                             }
                         });
                     }

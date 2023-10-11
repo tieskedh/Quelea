@@ -46,11 +46,9 @@ import org.quelea.data.displayable.SongDisplayable
 import org.quelea.services.languages.LabelGrabber
 import org.quelea.services.utils.QueleaProperties.Companion.get
 import org.quelea.utils.javaTrim
-import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.library.LibrarySongController
 import org.quelea.windows.main.StatusController
-import tornadofx.FX
-import tornadofx.onChange
-import tornadofx.runLater
+import tornadofx.*
 import java.awt.*
 import java.awt.font.TextAttribute
 import java.awt.image.BufferedImage
@@ -351,8 +349,8 @@ fun SongDisplayable.updateInBackground(showError: Boolean = true, silent: Boolea
     fun updateRunner() {
         val result = SongManager.get().updateSong(this)
         if (result && checkDBUpdate()) {
-            val songs = QueleaApp.get().mainWindow.mainPanel.libraryPanel.librarySongPanel.songList.listView.items
-            val replaceIdx = songs.indexOfFirst { it.id == id }
+            val songs = find<LibrarySongController>().items
+            val replaceIdx = songs.indexOfFirst { it?.id == id }
 
             if (replaceIdx != -1) runLater {
                 songs.removeAt(replaceIdx)

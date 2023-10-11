@@ -20,6 +20,7 @@ package org.quelea.windows.main.actionhandlers
 import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import org.quelea.windows.library.LibraryPanel
+import org.quelea.windows.library.LibrarySongController
 import org.quelea.windows.main.QueleaApp
 import tornadofx.FX
 
@@ -29,9 +30,9 @@ import tornadofx.FX
  */
 class PreviewSongActionHandler : EventHandler<ActionEvent?> {
     override fun handle(t: ActionEvent?) {
-        val libraryPanel = FX.find<LibraryPanel>()
+        val librarySongController = FX.find<LibrarySongController>()
         val prevPanel = QueleaApp.get().mainWindow.mainPanel.previewPanel
-        val song = libraryPanel.librarySongPanel.songList.selectedValue
+        val song = librarySongController.selectedValue
         prevPanel.setDisplayable(song, 0)
     }
 }

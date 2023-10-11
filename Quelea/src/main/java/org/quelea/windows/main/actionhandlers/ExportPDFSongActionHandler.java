@@ -33,9 +33,9 @@ import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.utils.DesktopApi;
-import org.quelea.windows.library.LibrarySongList;
-import org.quelea.windows.main.MainWindow;
+import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.QueleaApp;
+import tornadofx.FX;
 
 /**
  * An event handler that exports the currently selected song to a PDF file.
@@ -50,9 +50,7 @@ public class ExportPDFSongActionHandler implements EventHandler<ActionEvent> {
 
     @Override
     public void handle(ActionEvent t) {
-        MainWindow mainWindow = QueleaApp.get().getMainWindow();
-        final LibrarySongList songList = mainWindow.getMainPanel().getLibraryPanel().getLibrarySongPanel().getSongList();
-        final SongDisplayable song = songList.getListView().itemsProperty().get().get(songList.getListView().getSelectionModel().getSelectedIndex());
+        final SongDisplayable song = FX.find(LibrarySongController.class).getSelectedValue();
         if (song == null) {
             return;
         }

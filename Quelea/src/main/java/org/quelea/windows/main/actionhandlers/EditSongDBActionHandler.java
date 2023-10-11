@@ -21,8 +21,10 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import org.quelea.data.displayable.SongDisplayable;
+import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.newsong.SongEntryWindow;
+import tornadofx.FX;
 
 /**
  * Called when the current song in the library should be edited.
@@ -40,7 +42,7 @@ public class EditSongDBActionHandler implements EventHandler<ActionEvent> {
     public void handle(ActionEvent t) {
         Platform.runLater(() -> {
             SongEntryWindow songEntryWindow = QueleaApp.get().getMainWindow().getSongEntryWindow();
-            SongDisplayable song = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getLibrarySongPanel().getSongList().getSelectedValue();
+            SongDisplayable song = FX.find(LibrarySongController.class).getSelectedValue();
             if(song != null) {
                 songEntryWindow.resetEditSong(song);
                 songEntryWindow.show();

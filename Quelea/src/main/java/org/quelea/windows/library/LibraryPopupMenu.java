@@ -33,6 +33,7 @@ import org.quelea.windows.main.actionhandlers.EditSongDBActionHandler;
 import org.quelea.windows.main.actionhandlers.ExportPDFSongActionHandler;
 import org.quelea.windows.main.actionhandlers.PreviewSongActionHandler;
 import org.quelea.windows.main.actionhandlers.RemoveSongDBActionHandler;
+import tornadofx.FX;
 
 /**
  * The popup menu that displays when someone right clicks on a song in the
@@ -71,7 +72,7 @@ public class LibraryPopupMenu extends ContextMenu {
 
             @Override
             public void handle(ActionEvent t) {
-                final SongDisplayable song = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getLibrarySongPanel().getSongList().getSelectedValue();
+                final SongDisplayable song = FX.find(LibrarySongController.class).getSelectedValue();
                 if (song != null) {
                     if (song.hasChords()) {
                         Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("printing.options.text"), LabelGrabber.INSTANCE.getLabel("print.chords.question")).addYesButton(new EventHandler<ActionEvent>() {

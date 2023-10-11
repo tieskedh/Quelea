@@ -21,10 +21,13 @@ import javafx.event.ActionEvent
 import javafx.event.EventHandler
 import org.quelea.data.VideoBackground
 import org.quelea.data.displayable.SongDisplayable
+import org.quelea.services.utils.LoggerUtils
 import org.quelea.services.utils.QueleaProperties.Companion.get
 import org.quelea.services.utils.getVidBlankImage
 import org.quelea.utils.javaTrim
+import org.quelea.windows.library.LibrarySongController
 import org.quelea.windows.main.QueleaApp
+import tornadofx.*
 import kotlin.concurrent.thread
 
 /**
@@ -44,7 +47,12 @@ class AddSongActionHandler(private val updateInDB: Boolean) : EventHandler<Actio
     override fun handle(t: ActionEvent?) {
         val libraryPanel = QueleaApp.get().mainWindow.mainPanel.libraryPanel
         val schedulePanel = QueleaApp.get().mainWindow.mainPanel.schedulePanel
-        var song = libraryPanel.librarySongPanel.songList.selectedValue
+
+
+        var song = FX.find<LibrarySongController>().selectedValue ?: run{
+            LOGGER.warning("No song selected")
+            return
+        }
         if (get().songOverflow || !updateInDB) {
             song = SongDisplayable(song)
         }
@@ -71,5 +79,9 @@ class AddSongActionHandler(private val updateInDB: Boolean) : EventHandler<Actio
         thread {
             background.getVideoFile().getVidBlankImage() //cache it
         }
+    }
+
+    companion object{
+        private val LOGGER = LoggerUtils.getLogger()
     }
 }

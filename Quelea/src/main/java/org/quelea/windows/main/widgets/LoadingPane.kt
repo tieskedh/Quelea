@@ -16,83 +16,82 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.widgets;
+package org.quelea.windows.main.widgets
 
-import javafx.animation.FadeTransition;
-import javafx.animation.Transition;
-import javafx.geometry.Pos;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
-import javafx.util.Duration;
-import org.quelea.services.languages.LabelGrabber;
+import javafx.animation.FadeTransition
+import javafx.animation.Transition
+import javafx.beans.property.DoubleProperty
+import javafx.geometry.Pos
+import javafx.scene.control.ProgressBar
+import javafx.scene.layout.StackPane
+import org.quelea.services.languages.LabelGrabber
+import tornadofx.*
 
 /**
  * A pane that can be overlaid on a component when it's loading something.
- * <p/>
+ *
+ *
  * @author Michael
  */
-public class LoadingPane extends StackPane {
 
-    private FadeTransition trans;
-    private ProgressBar bar;
+class LoadingPane @JvmOverloads constructor(
+    private val progressProp: DoubleProperty = doubleProperty()
+) : StackPane() {
+    private var trans: FadeTransition? = null
+    private lateinit var bar: ProgressBar
+    var progress : Double by progressProp
+
 
     /**
      * Create the loading pane.
      */
-    public LoadingPane() {
-        setAlignment(Pos.CENTER);
-        VBox content = new VBox();
-        content.setAlignment(Pos.CENTER);
-        Text text = new Text(LabelGrabber.INSTANCE.getLabel("loading.text") + "...");
-        text.setStyle(" -fx-font: bold italic 20pt \"Arial\";");
-        FadeTransition textTransition = new FadeTransition(Duration.seconds(1.5), text);
-        textTransition.setAutoReverse(true);
-        textTransition.setFromValue(0);
-        textTransition.setToValue(1);
-        textTransition.setCycleCount(Transition.INDEFINITE);
-        textTransition.play();
-        content.getChildren().add(text);
-        bar = new ProgressBar();
-        content.getChildren().add(bar);
-        getChildren().add(content);
-        setOpacity(0);
-        setStyle("-fx-background-color: #555555;");
-        setVisible(false);
-    }
-    
-    public void setProgress(double progress) {
-        bar.setProgress(progress);
+    init {
+        alignment = Pos.CENTER
+        opacity = 0.0
+        style = "-fx-background-color: #555555;"
+        isVisible = false
+
+        vbox {
+            alignment = Pos.CENTER
+
+            text(LabelGrabber.INSTANCE.getLabel("loading.text") + "..."){
+                style = " -fx-font: bold italic 20pt \"Arial\";"
+                fade(
+                    1.5.seconds,
+                    1.0
+                ){
+                    isAutoReverse = true
+                    cycleCount = Transition.INDEFINITE
+                }
+            }
+            bar = progressbar(progressProp)
+        }
     }
 
     /**
      * Show (fade in) the loading pane.
      */
-    public synchronized void show() {
-        setVisible(true);
-        setProgress(-1);
-        if(trans != null) {
-            trans.stop();
-        }
-        trans = new FadeTransition(Duration.seconds(0.2), this);
-        trans.setFromValue(getOpacity());
-        trans.setToValue(0.6);
-        trans.play();
+    @Synchronized
+    fun show() {
+        isVisible = true
+        progressProp.set(-1.0)
+        trans?.stop()
+        trans = fade(
+            time=0.2.seconds,
+            opacity = 0.6
+        )
     }
 
     /**
      * Hide (fade out) the loading pane.
      */
-    public synchronized void hide() {
-        setVisible(false);
-        if(trans != null) {
-            trans.stop();
+    @Synchronized
+    fun hide() {
+        isVisible = false
+        trans?.stop()
+
+        trans = fade(0.2.seconds, 0) {
+            setOnFinished { isVisible = false }
         }
-        trans = new FadeTransition(Duration.seconds(0.2), this);
-        trans.setFromValue(getOpacity());
-        trans.setToValue(0);
-        trans.play();
-        trans.setOnFinished(actionEvent -> setVisible(false));
     }
 }
