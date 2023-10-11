@@ -15,154 +15,133 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.library;
+package org.quelea.windows.library
 
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.ListChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import org.quelea.data.displayable.SongDisplayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.actionhandlers.NewSongActionHandler;
-import org.quelea.windows.main.actionhandlers.RemoveSongDBActionHandler;
-import tornadofx.FX;
+import javafx.geometry.Orientation
+import javafx.geometry.Pos
+import javafx.scene.control.*
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.input.KeyCode
+import javafx.scene.layout.Priority
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.setToolbarButtonStyle
+import org.quelea.windows.main.actionhandlers.NewSongActionHandler
+import org.quelea.windows.main.actionhandlers.RemoveSongDBActionHandler
+import tornadofx.*
 
 /**
  * The panel used for browsing the database of songs and adding any songs to the
  * order of service.
- * <p/>
+ *
+ * @constructor Create and initialise the library song panel.
  *
  * @author Michael
  */
-public class LibrarySongPanel extends BorderPane {
-
-    private final TextField searchBox;
-    private final Button searchCancelButton;
-    private final LibrarySongController songController;
-    private final Button removeButton;
-    private final Button addButton;
-
-    /**
-     * Create and initialise the library song panel.
-     */
-    public LibrarySongPanel() {
-        boolean darkTheme = QueleaProperties.get().getUseDarkTheme();
-        LibrarySongList songList = LibrarySongList.create(true);
-        songController = FX.find(LibrarySongController.class);
-        songController.getSelectedValueProp().addListener((ov, t, t1) -> checkRemoveButton());
-        songController.getItems().addListener(
-                (ListChangeListener<SongDisplayable>) c -> checkRemoveButton()
-        );
-        ScrollPane listScrollPane = new ScrollPane();
-        setCenter(listScrollPane);
-
-        HBox northPanel = new HBox(3);
-        Label searchLabel = new Label(LabelGrabber.INSTANCE.getLabel("library.song.search"));
-        searchLabel.setMaxHeight(Double.MAX_VALUE);
-        searchLabel.setAlignment(Pos.CENTER);
-        northPanel.getChildren().add(searchLabel);
-        searchBox = new TextField();
-        HBox.setHgrow(searchBox, Priority.SOMETIMES);
-        searchBox.setMaxWidth(Double.MAX_VALUE);
-        searchBox.setOnKeyPressed(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent t) {
-                if (t.getCode() == KeyCode.ESCAPE) {
-                    searchCancelButton.fire();
-                }
-            }
-        });
-        searchBox.textProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> ov, String t, String t1) {
-                searchCancelButton.setDisable(searchBox.getText().isEmpty());
-                songController.filter(searchBox.getText());
-            }
-        });
-        northPanel.getChildren().add(searchBox);
-        searchCancelButton = new Button("", new ImageView(new Image(darkTheme ? "file:icons/cross-light.png" : "file:icons/cross.png")));
-        Utils.setToolbarButtonStyle(searchCancelButton);
-        searchCancelButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("clear.search.box")));
-        searchCancelButton.setDisable(true);
-        searchCancelButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent t) {
-                searchBox.clear();
-            }
-        });
-        northPanel.getChildren().add(searchCancelButton);
-        BorderPane.setMargin(northPanel, new Insets(0, 5, 0, 5));
-        setTop(northPanel);
-
-        ToolBar toolbar = new ToolBar();
-        toolbar.setOrientation(Orientation.VERTICAL);
-
-        ImageView addIV = new ImageView(new Image(darkTheme ? "file:icons/newsongdb-light.png" : "file:icons/newsongdb.png"));
-        addIV.setFitWidth(16);
-        addIV.setFitHeight(16);
-        addButton = new Button("", addIV);
-        Utils.setToolbarButtonStyle(addButton);
-        addButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("add.song.text")));
-        addButton.setOnAction(new NewSongActionHandler());
-        toolbar.getItems().add(addButton);
-        ImageView removeIV = new ImageView(new Image(darkTheme ? "file:icons/removedb-light.png" : "file:icons/removedb.png"));
-        removeIV.setFitWidth(16);
-        removeIV.setFitHeight(16);
-        removeButton = new Button("", removeIV);
-        Utils.setToolbarButtonStyle(removeButton);
-        removeButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("remove.song.text")));
-        removeButton.setDisable(true);
-        removeButton.setOnAction(new RemoveSongDBActionHandler());
-        toolbar.getItems().add(removeButton);
-        setLeft(toolbar);
-        setCenter(songList.getRoot());
-
-    }
-
-    /**
-     * Check whether the remove button should be enabled or disabled and set it
-     * accordingly.
-     */
-    private void checkRemoveButton() {
-        removeButton.setDisable(songController.getSelectedValue() == null);
-    }
-
-    /**
-     * Get the song list behind this panel.
-     * <p/>
-     *
-     * @return the song list.
-     */
-    public LibrarySongController getSongController() {
-        return songController;
-    }
-
+class LibrarySongPanel : View() {
     /**
      * Get the search box in this panel.
-     * <p/>
+     *
+     *
      *
      * @return the search box.
      */
-    public TextField getSearchBox() {
-        return searchBox;
+    lateinit var searchBox: TextField
+        private set
+
+    /**
+     * Get the song list behind this panel.
+     *
+     *
+     *
+     * @return the song list.
+     */
+    @JvmField
+    val songController = find<LibrarySongController>()
+
+    override val root = borderpane {
+        val darkTheme = get().useDarkTheme
+
+        top {
+            hbox(3) {
+                borderpaneConstraints {
+                    marginLeftRight(5.0)
+                }
+
+                //searchLabel
+                label(
+                    LabelGrabber.INSTANCE.getLabel("library.song.search")
+                ){
+                    maxHeight = Double.MAX_VALUE
+                    alignment = Pos.CENTER
+                }
+                textfield(songController.searchText) {
+                    hboxConstraints {
+                        hGrow = Priority.SOMETIMES
+                    }
+                    maxWidth = Double.MAX_VALUE
+                    setOnKeyPressed {
+                        if (it.code == KeyCode.ESCAPE)
+                            songController.clearSearch()
+                    }
+                    focusedProperty()
+                    subscribe<SearchBoxFocused> {
+                        requestFocus()
+                    }
+                }
+
+//              searchCancelButton
+                button(
+                    graphic = ImageView(Image(if (darkTheme) "file:icons/cross-light.png" else "file:icons/cross.png"))
+                ) {
+                    setToolbarButtonStyle()
+                    tooltip(LabelGrabber.INSTANCE.getLabel("clear.search.box"))
+                    disableWhen(songController.disableClearSearch)
+                    setOnAction {
+                        songController.clearSearch()
+                    }
+                }
+            }
+        }
+        center {
+            add<LibrarySongList>("popup" to true)
+        }
+        left {
+            toolbar{
+                orientation = Orientation.VERTICAL
+
+                //addButton
+                button(
+                    graphic = ImageView(Image(when(darkTheme) {
+                            true -> "file:icons/newsongdb-light.png"
+                            false -> "file:icons/newsongdb.png"
+                    })).apply {
+                        fitHeight = 16.0
+                        fitWidth = 16.0
+                    }
+                ) {
+                    setToolbarButtonStyle()
+                    tooltip = Tooltip(LabelGrabber.INSTANCE.getLabel("add.song.text"))
+                    onAction = NewSongActionHandler()
+                }
+
+                //removeButton
+                button(
+                    graphic = ImageView(Image(when {
+                        darkTheme -> "file:icons/removedb-light.png"
+                        else -> "file:icons/removedb.png"
+                    })).apply {
+                        fitHeight = 16.0
+                        fitWidth = 16.0
+                    }
+                ) {
+                    setToolbarButtonStyle()
+                    tooltip(LabelGrabber.INSTANCE.getLabel("remove.song.text"))
+                    disableWhen(songController.selectedValueProp.isNull)
+                    onAction = RemoveSongDBActionHandler()
+                }
+            }
+        }
     }
 }

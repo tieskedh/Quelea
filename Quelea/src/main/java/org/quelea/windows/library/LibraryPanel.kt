@@ -51,12 +51,15 @@ class LibraryPanelController: Controller() {
  */
 class LibraryPanel : View() {
     /**
-     * Get the library song panel.
-     *
-     * @return the library song panel.
+     * The contoller for the library song.
      */
-    lateinit var librarySongPanel: LibrarySongPanel
-        private set
+    @Deprecated("use FX instead", ReplaceWith(
+        "FX.find<LibrarySongController>()",
+        "tornadofx.FX",
+        "org.quelea.windows.library.LibrarySongController"
+    ))
+    val librarySongController by inject<LibrarySongController>()
+
     /**
      * Get the library bible panel.
      *
@@ -91,8 +94,10 @@ class LibraryPanel : View() {
             tab(
                 LabelGrabber.INSTANCE.getLabel("library.songs.heading")
             ) {
+                isClosable = false
+
                 LOGGER.log(Level.INFO, "Creating library song panel")
-                librarySongPanel = opcr(this, LibrarySongPanel())
+                add<LibrarySongPanel>()
             }
 
             tab(

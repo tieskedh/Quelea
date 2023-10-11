@@ -24,6 +24,7 @@ import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.schedule.ScheduleList;
+import tornadofx.FX;
 
 /**
  * Responsible for checking, enabling, disabling etc. buttons.
@@ -78,8 +79,8 @@ public class ButtonChecker {
      */
     public void checkAddButton(MenuItem addSongButton) {
         final MainPanel mainPanel = QueleaApp.get().getMainWindow().getMainPanel();
-        final LibrarySongController listSongController = mainPanel.getLibraryPanel().getLibrarySongPanel().getSongController();
-        if(!listSongController.isFocused()) {
+        final LibrarySongController listSongController = FX.find(LibrarySongController.class);
+        if(!listSongController.isListViewFocuses()) {
             addSongButton.setDisable(true);
             return;
         }

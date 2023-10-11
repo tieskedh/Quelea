@@ -67,7 +67,9 @@ class LibrarySongList : View() {
             }
         }
 
-        addSongOverlay = AddSongPromptOverlay().attachTo(this){
+        addSongOverlay = AddSongPromptOverlay(
+            controller.showAddSongOverlay
+        ).attachTo(this){
             controller.items.onChange { change ->
                 if (change.list.isNullOrEmpty()) show()
                 else hide()

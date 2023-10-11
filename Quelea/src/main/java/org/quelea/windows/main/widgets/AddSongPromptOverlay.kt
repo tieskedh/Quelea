@@ -19,13 +19,14 @@
 package org.quelea.windows.main.widgets
 
 import javafx.animation.FadeTransition
+import javafx.beans.property.BooleanProperty
+import javafx.beans.value.ObservableBooleanValue
 import javafx.geometry.Pos
-import javafx.scene.control.Label
 import javafx.scene.image.Image
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import org.quelea.services.languages.LabelGrabber
-import org.quelea.windows.library.LibraryPanel
+import org.quelea.windows.library.LibrarySongController
 import tornadofx.*
 
 /**
@@ -38,10 +39,10 @@ import tornadofx.*
  *
  * @author Michael
  */
-class AddSongPromptOverlay : StackPane() {
+class AddSongPromptOverlay(
+    isVisibleProp : ObservableBooleanValue
+) : StackPane() {
     private var trans: FadeTransition? = null
-    lateinit var text: Label
-        private set
 
     init {
         alignment = Pos.CENTER
@@ -58,7 +59,7 @@ class AddSongPromptOverlay : StackPane() {
 
             imageview(Image("file:icons/whitearrow.png"))
 
-            text = label(
+            label(
                 LabelGrabber.INSTANCE.getLabel("add.song.hint.text")
             ) {
                 isWrapText = true
@@ -66,7 +67,7 @@ class AddSongPromptOverlay : StackPane() {
                 style = "-fx-font-size:16pt; -fx-font-family:Calibri;"
 
                 runLater {
-                    FX.find<LibraryPanel>().librarySongPanel.searchBox.textProperty().onChange {
+                    FX.find<LibrarySongController>().searchText.onChange {
                         text = when(it.isNullOrEmpty()) {
                             true -> LabelGrabber.INSTANCE.getLabel("add.song.hint.text")
                             false ->LabelGrabber.INSTANCE.getLabel("add.song.hint.search.text")
@@ -75,13 +76,17 @@ class AddSongPromptOverlay : StackPane() {
                 }
             }
         }
+
+        isVisibleProp.onChange { visible->
+            if (visible) show() else hide()
+        }
     }
 
     /**
      * Show (fade in) the overlay.
      */
     @Synchronized
-    fun show() {
+    private fun show() {
         isVisible = true
         trans?.stop()
 
@@ -95,7 +100,7 @@ class AddSongPromptOverlay : StackPane() {
      * Hide (fade out) the overlay.
      */
     @Synchronized
-    fun hide() {
+    private fun hide() {
         trans?.stop()
         trans = fade(
             time = 0.2.seconds,

@@ -45,11 +45,11 @@ class AddSongActionHandler(private val updateInDB: Boolean) : EventHandler<Actio
      * @param t the event.
      */
     override fun handle(t: ActionEvent?) {
-        val libraryPanel = QueleaApp.get().mainWindow.mainPanel.libraryPanel
         val schedulePanel = QueleaApp.get().mainWindow.mainPanel.schedulePanel
 
+        val librarySongController = FX.find<LibrarySongController>()
 
-        var song = FX.find<LibrarySongController>().selectedValue ?: run{
+        var song = librarySongController.selectedValue ?: run{
             LOGGER.warning("No song selected")
             return
         }
@@ -68,7 +68,7 @@ class AddSongActionHandler(private val updateInDB: Boolean) : EventHandler<Actio
         }
         cacheVidPreview(song)
         schedulePanel.scheduleList.add(song)
-        libraryPanel.librarySongPanel.searchBox.clear()
+        librarySongController.clearSearch()
     }
 
     private fun cacheVidPreview(song: SongDisplayable?) {

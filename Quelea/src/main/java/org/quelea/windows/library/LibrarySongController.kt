@@ -1,9 +1,11 @@
 package org.quelea.windows.library
 
+import javafx.beans.binding.BooleanBinding
 import org.quelea.data.db.SongManager
 import org.quelea.data.displayable.SongDisplayable
 import org.quelea.services.lucene.SearchIndex
 import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties
 import org.quelea.services.utils.QueleaProperties.Companion.get
 import org.quelea.utils.javaTrim
 import org.quelea.windows.main.MainPanel
@@ -14,6 +16,8 @@ import java.util.concurrent.Future
 import java.util.logging.Level
 import java.util.regex.Pattern
 import kotlin.concurrent.thread
+
+object SearchBoxFocused : FXEvent()
 
 /**
  * Controller for the list that displays the songs in the library.
@@ -32,7 +36,15 @@ class LibrarySongController : Controller() {
     private var filterFuture: Future<*>? = null
 
 
-    val selectedValueProp = objectProperty<SongDisplayable?>(null)
+    val selectedValueProp = objectProperty<SongDisplayable?>(null).apply {
+        onChange { song->
+            previewVisible.value = song != null && QueleaProperties.get().showDBSongPreview
+            FX.find<MainPanel>().previewPanel.setDisplayable(
+                song,
+                0
+            )
+        }
+    }
     var selectedValue by selectedValueProp
         private set
 
@@ -40,16 +52,16 @@ class LibrarySongController : Controller() {
     val previewVisible = booleanProperty(false)
 
 
+    val searchText = stringProperty("").apply {
+        onChange(::filter)
+    }
+    val disableClearSearch : BooleanBinding = searchText.isEmpty
+
+    val showAddSongOverlay : BooleanBinding = booleanBinding(items){ isNullOrEmpty() }
+
     init {
         thread(block = ::refresh)
         SongManager.get().registerDatabaseListener { refresh() }
-        selectedValueProp.onChange { song->
-            previewVisible.value = song != null && get().showDBSongPreview
-            FX.find<MainPanel>().previewPanel.setDisplayable(
-                selectedValue,
-                0
-            )
-        }
     }
 
     fun refresh() {
@@ -61,14 +73,22 @@ class LibrarySongController : Controller() {
         }
     }
 
+    fun focusSearch() {
+        fire(SearchBoxFocused)
+    }
 
-    var isFocused = false
+    var isListViewFocuses = false
         private set
+
     fun onListViewFocusChanged(focused:  Boolean) {
-        isFocused = focused
+        isListViewFocuses = focused
         previewVisible.value = get().showDBSongPreview && selectedValue == null
     }
 
+
+    fun clearSearch() {
+        searchText.value = ""
+    }
     /**
      * Filter the results in this list by a specific search term.
      *
