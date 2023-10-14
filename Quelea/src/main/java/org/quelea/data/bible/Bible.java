@@ -275,6 +275,10 @@ public final class Bible implements BibleInterface, Serializable {
         return books.toArray(new BibleBook[books.size()]);
     }
 
+    public List<BibleBook> getBooklist() {
+        return List.copyOf(books);
+    }
+
     @Override
     public int getNum() {
         return -1;

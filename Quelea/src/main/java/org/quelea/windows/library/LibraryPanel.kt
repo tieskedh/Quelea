@@ -47,26 +47,24 @@ class LibraryPanelController: Controller() {
  * The panel that's used to display the library of media (pictures, video) and
  * songs. Items can be selected from here and added to the order of service.
  *
+ * @property librarySongController The controller for the library song.
+ * @property bibleController The controller for the Bible panell.
  * @author Michael
  */
 class LibraryPanel : View() {
-    /**
-     * The contoller for the library song.
-     */
     @Deprecated("use FX instead", ReplaceWith(
-        "FX.find<LibrarySongController>()",
+        "FX.find(LibrarySongController::class.java)",
         "tornadofx.FX",
         "org.quelea.windows.library.LibrarySongController"
     ))
     val librarySongController by inject<LibrarySongController>()
 
-    /**
-     * Get the library bible panel.
-     *
-     * @return the library bible panel.
-     */
-    lateinit var biblePanel: LibraryBiblePanel
-        private set
+    @Deprecated("use FX instead", ReplaceWith(
+        "FX.find(LibraryBibleController::class.java)",
+        "tornadofx.FX",
+        "org.quelea.windows.library.LibraryBibleController"
+    ))
+    val bibleController by inject<LibraryBibleController>()
 
     /**
      * Get the library video panel.
@@ -90,7 +88,6 @@ class LibraryPanel : View() {
                 vGrow = Priority.ALWAYS
             }
 
-
             tab(
                 LabelGrabber.INSTANCE.getLabel("library.songs.heading")
             ) {
@@ -106,9 +103,8 @@ class LibraryPanel : View() {
                 isClosable = false
 
                 LOGGER.log(Level.INFO, "Creating library bible panel")
-                biblePanel = opcr(this, LibraryBiblePanel())
+                add<LibraryBiblePanel>()
             }
-
 
             tab(
                 LabelGrabber.INSTANCE.getLabel("library.image.heading")

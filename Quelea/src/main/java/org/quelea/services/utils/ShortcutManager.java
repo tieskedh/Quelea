@@ -21,6 +21,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import org.quelea.windows.library.LibraryBibleController;
 import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.MainWindow;
@@ -83,7 +84,7 @@ public class ShortcutManager {
                 mainPanel.getSchedulePanel().getScheduleList().getListView().requestFocus();
             } else if (checkCombination(QueleaProperties.get().getBibleFocusKeys())) {
                 mainPanel.getLibraryPanel().getTabPane().getSelectionModel().select(1);
-                mainPanel.getLibraryPanel().getBiblePanel().getBookSelector().requestFocus();
+                FX.find(LibraryBibleController.class).focusBibleBookSelector();
             }
             keyCodeBuilder.clear();
         });

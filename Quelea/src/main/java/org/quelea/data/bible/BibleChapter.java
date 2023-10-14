@@ -20,6 +20,7 @@ package org.quelea.data.bible;
 import java.io.Serializable;
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
@@ -193,6 +194,10 @@ public final class BibleChapter implements BibleInterface, Serializable {
      */
     public BibleVerse[] getVerses() {
         return verses.values().toArray(new BibleVerse[verses.size()]);
+    }
+
+    public List<BibleVerse> getVersesList() {
+        return List.copyOf(verses.values());
     }
 
     /**

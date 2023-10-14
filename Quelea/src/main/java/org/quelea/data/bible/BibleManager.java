@@ -114,6 +114,10 @@ public final class BibleManager {
         return bibles.toArray(new Bible[bibles.size()]);
     }
 
+    public List<Bible> getBiblesList() {
+        return List.copyOf(bibles);
+    }
+
     public Bible getBibleFromName(String name) {
         for (Bible b : bibles) {
             if (b.getName().equals(name))

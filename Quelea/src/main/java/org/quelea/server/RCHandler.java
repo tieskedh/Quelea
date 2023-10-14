@@ -52,8 +52,7 @@ import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
 import org.quelea.utils.ThemeUtils;
-import org.quelea.windows.library.LibraryBiblePanel;
-import org.quelea.windows.library.LibraryPanel;
+import org.quelea.windows.library.LibraryBibleController;
 import org.quelea.windows.main.LivePanel;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
@@ -393,13 +392,13 @@ public class RCHandler {
             String book = searchString.split("/")[1];
             String cv = searchString.split("/")[2];
             String error = LabelGrabber.INSTANCE.getLabel("rcs.add.bible.error").replace("$1", book + " " + cv);
-            final LibraryBiblePanel lbp = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getBiblePanel();
+            final LibraryBibleController lbp = FX.find(LibraryBibleController.class);
             boolean success = false;
-            for (int i = 0; i < lbp.getBibleSelector().getItems().size(); i++) {
-                if (lbp.getBibleSelector().getItems().get(i).getBibleName().replaceAll("/", " - ").equalsIgnoreCase(translation)) {
-                    final int j = i;
+            for (int i = 0; i < lbp.getBibles().size(); i++) {
+                Bible bible = lbp.getBibles().get(i);
+                if (bible.getBibleName().replaceAll("/", " - ").equalsIgnoreCase(translation)) {
                     Utils.fxRunAndWait(() -> {
-                        lbp.getBibleSelector().selectionModelProperty().get().clearAndSelect(j);
+                        lbp.setSelectedBible(bible);
                     });
                     success = true;
                 }
@@ -408,11 +407,12 @@ public class RCHandler {
                 return error;
             }
             success = false;
-            for (int i = 0; i < lbp.getBookSelector().getItems().size(); i++) {
-                if (lbp.getBookSelector().getItems().get(i).getBookName().equalsIgnoreCase(book)) {
-                    final int j = i;
+            //KOTLINIZE: must we not first set search to null?
+            for (int i = 0; i < lbp.getFilteredBibleBooks().size(); i++) {
+                BibleBook bibleBook = lbp.getFilteredBibleBooks().get(i);
+                if (bibleBook.getBookName().equalsIgnoreCase(book)) {
                     Utils.fxRunAndWait(() -> {
-                        lbp.getBookSelector().selectionModelProperty().get().clearAndSelect(j);
+                        lbp.setSelectedBibleBook(bibleBook);
                     });
                     success = true;
                 }
@@ -423,8 +423,8 @@ public class RCHandler {
 
             int before = QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().getItems().size();
             Utils.fxRunAndWait(() -> {
-                lbp.getPassageSelector().setText(cv);
-                lbp.getAddToSchedule().fire();
+                lbp.setBooklessBiblePassageRef(cv);
+                lbp.addSelectedPassageToSchedule();
             });
             int after = QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().getItems().size();
 
@@ -523,8 +523,8 @@ public class RCHandler {
 
     public static String listBibleTranslations(HttpExchange he) {
         StringBuilder ret = new StringBuilder();
-        final LibraryBiblePanel lbp = QueleaApp.get().getMainWindow().getMainPanel().getLibraryPanel().getBiblePanel();
-        for (Bible b : lbp.getBibleSelector().getItems()) {
+        final LibraryBibleController lbp = FX.find(LibraryBibleController.class);
+        for (Bible b : lbp.getBibles()) {
             if (b.getBibleName().equals(QueleaProperties.get().getDefaultBible())) {
                 ret.append("*");
             }
@@ -538,13 +538,13 @@ public class RCHandler {
         if (he.getRequestURI().toString().contains("/books/")) {
             String uri = URLDecoder.decode(he.getRequestURI().toString(), "UTF-8");
             searchString = uri.split("/books/")[1];
-            final LibraryBiblePanel lbp = FX.find(LibraryPanel.class).getBiblePanel();
+            final LibraryBibleController lbp = FX.find(LibraryBibleController.class);
             boolean success = false;
-            for (int i = 0; i < lbp.getBibleSelector().getItems().size(); i++) {
-                if (lbp.getBibleSelector().getItems().get(i).getBibleName().replaceAll("/", " - ").equalsIgnoreCase(searchString)) {
-                    final int j = i;
+            for (int i = 0; i < lbp.getBibles().size(); i++) {
+                Bible bible = lbp.getBibles().get(i);
+                if (bible.getBibleName().replaceAll("/", " - ").equalsIgnoreCase(searchString)) {
                     Utils.fxRunAndWait(() -> {
-                        lbp.getBibleSelector().selectionModelProperty().get().clearAndSelect(j);
+                        lbp.setSelectedBible(bible);
                     });
                     success = true;
                 }
@@ -553,7 +553,8 @@ public class RCHandler {
                 return "";
             }
             StringBuilder ret = new StringBuilder();
-            for (BibleBook bb : lbp.getBookSelector().getItems()) {
+            //KOTLINIZE: officially only search for books that start with the search string
+            for (BibleBook bb : lbp.getBibleBooks()) {
                 ret.append(bb.getBookName()).append("\n");
             }
             return ret.toString();

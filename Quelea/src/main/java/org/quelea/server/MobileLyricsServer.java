@@ -45,8 +45,7 @@ import org.quelea.services.utils.LineTypeChecker;
 import org.quelea.services.utils.LineTypeChecker.Type;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.utils.Chord;
-import org.quelea.windows.library.LibraryBiblePanel;
-import org.quelea.windows.library.LibraryPanel;
+import org.quelea.windows.library.LibraryBibleController;
 import org.quelea.windows.main.LivePanel;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.QueleaApp;
@@ -447,7 +446,7 @@ public class MobileLyricsServer {
             if (running && lp.isContentShowing() && lp.getDisplayable() instanceof TextDisplayable) {
                 String response = lp.getDisplayable().getPreviewText();
                 if (lp.getDisplayable() instanceof BiblePassage) {
-                    LibraryBiblePanel lbp = FX.find(LibraryPanel.class).getBiblePanel();
+                    LibraryBibleController lbp = FX.find(LibraryBibleController.class);
                     int chapterPos = 0;
 
                     for (int i = 1; i < response.length(); i++) {
@@ -462,13 +461,13 @@ public class MobileLyricsServer {
                     int bookNumber = 0;
                     int bibleNumber = 0;
 
-                    for (int i = 0; i < lbp.getBibleSelector().getItems().size(); i++) {
-                        if (lbp.getBibleSelector().getItems().get(i).toString().toLowerCase().contains(bible.toLowerCase())) {
+                    for (int i = 0; i < lbp.getBibles().size(); i++) {
+                        if (lbp.getBibles().get(i).toString().toLowerCase().contains(bible.toLowerCase())) {
                             bibleNumber = i;
                         }
                     }
 
-                    BibleBook[] books = lbp.getBibleSelector().getItems().get(bibleNumber).getBooks();
+                    BibleBook[] books = lbp.getBibles().get(bibleNumber).getBooks();
                     for (int i = 0; i < books.length; i++) {
                         if (books[i].getBookName().equalsIgnoreCase(book)) {
                             bookNumber = i + 1;
