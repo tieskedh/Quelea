@@ -39,7 +39,7 @@ import tornadofx.*
  *
  * @author Michael
  */
-class LibrarySongPanel : View() {
+class LibrarySongPanel : View(LabelGrabber.INSTANCE.getLabel("library.songs.heading")) {
     /**
      * Get the search box in this panel.
      *

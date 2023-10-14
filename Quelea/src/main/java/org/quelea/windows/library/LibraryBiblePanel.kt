@@ -35,7 +35,7 @@ import tornadofx.*
  *
  * @author Michael
  */
-class LibraryBiblePanel : View() {
+class LibraryBiblePanel : View(LabelGrabber.INSTANCE.getLabel("library.bible.heading")) {
 
     val controller = find<LibraryBibleController>()
 

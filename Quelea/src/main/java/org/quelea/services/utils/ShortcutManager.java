@@ -22,6 +22,7 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import org.quelea.windows.library.LibraryBibleController;
+import org.quelea.windows.library.LibraryPanelController;
 import org.quelea.windows.library.LibrarySongController;
 import org.quelea.windows.main.MainPanel;
 import org.quelea.windows.main.MainWindow;
@@ -62,8 +63,7 @@ public class ShortcutManager {
 
         mainPanel.getRoot().addEventFilter(KeyEvent.KEY_RELEASED, event -> {
             if (checkCombination(QueleaProperties.get().getSearchKeys())) {
-                mainPanel.getLibraryPanel().getTabPane().getSelectionModel().select(0);
-                FX.find(LibrarySongController.class).focusSearch();
+                FX.find(LibraryPanelController.class).showSongTab().focusSearch();
             } else if (checkCombination(QueleaProperties.get().getLogoKeys())) {
                 mainWindow.getMainPanel().getLivePanel().toggleLogo();
             } else if (checkCombination(QueleaProperties.get().getBlackKeys())) {
@@ -83,8 +83,7 @@ public class ShortcutManager {
             } else if (checkCombination(QueleaProperties.get().getScheduleFocusKeys())) {
                 mainPanel.getSchedulePanel().getScheduleList().getListView().requestFocus();
             } else if (checkCombination(QueleaProperties.get().getBibleFocusKeys())) {
-                mainPanel.getLibraryPanel().getTabPane().getSelectionModel().select(1);
-                FX.find(LibraryBibleController.class).focusBibleBookSelector();
+                FX.find(LibraryPanelController.class).showBibleTab().focusBibleBookSelector();
             }
             keyCodeBuilder.clear();
         });

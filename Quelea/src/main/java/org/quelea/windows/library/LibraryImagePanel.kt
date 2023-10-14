@@ -35,7 +35,7 @@ import tornadofx.*
  *
  * @author Michael
  */
-class LibraryImagePanel : View() {
+class LibraryImagePanel : View(LabelGrabber.INSTANCE.getLabel("library.image.heading")) {
 
     override val root = borderpane {
         val controller = find<ImageListPanel>().also {

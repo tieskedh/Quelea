@@ -18,7 +18,6 @@ import kotlin.io.path.copyTo
 import kotlin.io.path.deleteExisting
 
 class LibraryTimerController : Controller() {
-    var dir: String = params.getValue("dir") as String
 
     val items = observableListOf<TimerDisplayable>()
     private var updateThread: Thread? = null
@@ -26,6 +25,7 @@ class LibraryTimerController : Controller() {
     val selectedTimerProperty = objectProperty<TimerDisplayable>()
     val selectedItem by selectedTimerProperty
 
+    var dir = QueleaProperties.get().timerDir.absolutePath
 
     fun filesDraggedToTimerList(files: List<File>) {
         files.filter { it.isTimer() && !it.isDirectory() }

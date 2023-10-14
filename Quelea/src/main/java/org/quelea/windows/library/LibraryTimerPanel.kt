@@ -38,10 +38,10 @@ import java.io.File
  * @constructor Create a new library timer panel.
  * @author Ben
  */
-class LibraryTimerPanel : View() {
-    private val timerListControl = find<LibraryTimerController>(
-        "dir" to get().timerDir.absolutePath
-    )
+class LibraryTimerPanel : View(
+    LabelGrabber.INSTANCE.getLabel("library.timer.heading")
+) {
+    private val timerListControl = find<LibraryTimerController>()
 
     override val root = borderpane {
         center {

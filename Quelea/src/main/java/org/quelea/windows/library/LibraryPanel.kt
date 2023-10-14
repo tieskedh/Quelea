@@ -18,6 +18,7 @@
 package org.quelea.windows.library
 
 import javafx.beans.value.ObservableValue
+import javafx.scene.control.Tab
 import javafx.scene.control.TabPane
 import javafx.scene.layout.Priority
 import org.quelea.services.languages.LabelGrabber
@@ -33,6 +34,20 @@ class LibraryPanelController: Controller() {
         !get().timerDir.listFiles().isNullOrEmpty()
     )
     val timerPanelVisible : ObservableValue<Boolean> = _timerPanelVisible
+
+    val selectedTab = intProperty(0)
+
+    private val songController by inject<LibrarySongController>()
+    private val bibleController by inject<LibraryBibleController>()
+
+    fun showSongTab(): LibrarySongController {
+        selectedTab.set(0)
+        return songController
+    }
+    fun showBibleTab(): LibraryBibleController{
+        selectedTab.set(1)
+        return bibleController
+    }
 
     /**
      * Method to force the display of timers folder
@@ -52,6 +67,60 @@ class LibraryPanelController: Controller() {
  * @author Michael
  */
 class LibraryPanel : View() {
+
+    val controller by inject<LibraryPanelController>()
+
+
+    override val root = vbox {
+        LOGGER.log(Level.INFO, "Creating library panel")
+        tabpane {
+            selectionModel.selectedIndexProperty().onChange {
+                controller.selectedTab.set(it)
+            }
+            controller.selectedTab.onChange { selectionModel.select(it) }
+
+            vboxConstraints {
+                vGrow = Priority.ALWAYS
+            }
+
+            LOGGER.log(Level.INFO, "Creating library song panel")
+            notCloseableTab<LibrarySongPanel>()
+
+            LOGGER.log(Level.INFO, "Creating library bible panel")
+            notCloseableTab<LibraryBiblePanel>()
+
+            LOGGER.log(Level.INFO, "Creating library image panel")
+            notCloseableTab<LibraryImagePanel>()
+
+
+            if (get().displayVideoTab) tab(
+                LabelGrabber.INSTANCE.getLabel("library.video.heading")
+            ) {
+                isClosable = false
+                LOGGER.log(Level.INFO, "Creating library video panel")
+                add(LibraryVideoPanel())
+            }
+
+
+            LOGGER.log(Level.INFO, "Creating library timer panel")
+            notCloseableTab<LibraryTimerPanel>{
+                visibleWhen(controller.timerPanelVisible)
+            }
+
+        }
+    }
+
+
+    private inline fun <reified T : UIComponent> TabPane.notCloseableTab(
+        crossinline op : Tab.(T)->Unit = {}
+    ) = find<T>().also {
+        tab(it.title) {
+            isClosable = false
+            add(it.root)
+            op(it)
+        }
+    }
+
     @Deprecated("use FX instead", ReplaceWith(
         "FX.find(LibrarySongController::class.java)",
         "tornadofx.FX",
@@ -65,73 +134,6 @@ class LibraryPanel : View() {
         "org.quelea.windows.library.LibraryBibleController"
     ))
     val bibleController by inject<LibraryBibleController>()
-
-    /**
-     * Get the library video panel.
-     *
-     * @return the library video panel.
-     */
-    var videoPanel: LibraryVideoPanel? = null
-        private set
-
-    lateinit var tabPane: TabPane
-        private set
-
-
-    val controller by inject<LibraryPanelController>()
-
-
-    override val root = vbox {
-        LOGGER.log(Level.INFO, "Creating library panel")
-        tabPane = tabpane {
-            vboxConstraints {
-                vGrow = Priority.ALWAYS
-            }
-
-            tab(
-                LabelGrabber.INSTANCE.getLabel("library.songs.heading")
-            ) {
-                isClosable = false
-
-                LOGGER.log(Level.INFO, "Creating library song panel")
-                add<LibrarySongPanel>()
-            }
-
-            tab(
-                LabelGrabber.INSTANCE.getLabel("library.bible.heading")
-            ) {
-                isClosable = false
-
-                LOGGER.log(Level.INFO, "Creating library bible panel")
-                add<LibraryBiblePanel>()
-            }
-
-            tab(
-                LabelGrabber.INSTANCE.getLabel("library.image.heading")
-            ) {
-                isClosable = false
-                LOGGER.log(Level.INFO, "Creating library image panel")
-                add<LibraryImagePanel>()
-            }
-
-            if (get().displayVideoTab) tab(
-                LabelGrabber.INSTANCE.getLabel("library.video.heading")
-            ) {
-                isClosable = false
-                LOGGER.log(Level.INFO, "Creating library video panel")
-                videoPanel = opcr(this, LibraryVideoPanel())
-            }
-
-            tab(
-                LabelGrabber.INSTANCE.getLabel("library.timer.heading")
-            ) {
-                isClosable = false
-                LOGGER.log(Level.INFO, "Creating library timer panel")
-                add<LibraryTimerPanel>()
-                visibleWhen(controller.timerPanelVisible)
-            }
-        }
-    }
 
 
 
