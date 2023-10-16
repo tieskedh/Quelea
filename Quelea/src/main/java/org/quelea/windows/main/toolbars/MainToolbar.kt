@@ -16,421 +16,400 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.toolbars;
+package org.quelea.windows.main.toolbars
 
-import java.util.Date;
-
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Text;
-
-import javax.swing.Timer;
-
-import org.javafx.dialog.Dialog;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.actionhandlers.AddDVDActionHandler;
-import org.quelea.windows.main.actionhandlers.AddImageActionHandler;
-import org.quelea.windows.main.actionhandlers.AddPdfActionHandler;
-import org.quelea.windows.main.actionhandlers.AddPowerpointActionHandler;
-import org.quelea.windows.main.actionhandlers.AddVideoActionHandler;
-import org.quelea.windows.main.actionhandlers.AddTimerActionHandler;
-import org.quelea.windows.main.actionhandlers.AddWebActionHandler;
-import org.quelea.windows.main.actionhandlers.RecordButtonHandler;
-import org.quelea.windows.main.actionhandlers.NewScheduleActionHandler;
-import org.quelea.windows.main.actionhandlers.NewSongActionHandler;
-import org.quelea.windows.main.actionhandlers.OpenScheduleActionHandler;
-import org.quelea.windows.main.actionhandlers.PrintScheduleActionHandler;
-import org.quelea.windows.main.actionhandlers.QuickInsertActionHandler;
-import org.quelea.windows.main.actionhandlers.SaveScheduleActionHandler;
-import org.quelea.windows.main.actionhandlers.ShowNoticesActionHandler;
+import javafx.scene.control.*
+import javafx.scene.control.PopupControl.USE_PREF_SIZE
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.StackPane
+import javafx.scene.text.Text
+import org.javafx.dialog.Dialog
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.TOOLBAR_BUTTON_STYLE
+import org.quelea.services.utils.isMac
+import org.quelea.services.utils.setToolbarButtonStyle
+import org.quelea.utils.dumbToggleButton
+import org.quelea.windows.main.MainPanel
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.actionhandlers.*
+import tornadofx.*
+import java.util.*
+import javax.swing.Timer
 
 /**
  * Quelea's main toolbar.
- * <p/>
+ *
+ *
  *
  * @author Michael
  */
-public class MainToolbar extends ToolBar {
+class MainToolbar : View() {
+    private var newScheduleButton: Button? = null
+    private var openScheduleButton: Button? = null
+    private var saveScheduleButton: Button? = null
+    private var printScheduleButton: Button? = null
+    private var newSongButton: Button? = null
+    private var quickInsertButton: Button? = null
+    private var manageNoticesButton: Button? = null
+    private lateinit var add: MenuButton
+    private var loadingView: ImageView = when {
+        isMac() -> getImageViewForButton("file:icons/loading.gif", useTheme = false)
+        else -> getRequireResizeImageView("file:icons/loading.gif", useTheme = false)
+    }
 
-    private final Button newScheduleButton;
-    private final Button openScheduleButton;
-    private final Button saveScheduleButton;
-    private final Button printScheduleButton;
-    private final Button newSongButton;
-    private final Button quickInsertButton;
-    private final Button manageNoticesButton;
-    private final MenuButton add;
-    private final ImageView loadingView;
-    private final StackPane dvdImageStack;
-    private final ToggleButton recordAudioButton;
-    private final ProgressBar pb = new ProgressBar(0);
-    private Dialog setRecordinPathWarning;
-    private RecordButtonHandler recordingsHandler;
-    private TextField recordingPathTextField;
-    private boolean recording;
-    private long openTime;
-    private long recTime;
-    private Timer recCount;
+    private val dvdImageStack = StackPane(
+        when(isMac()) {
+            true -> getImageViewForButton("file:icons/dvd.png")
+            false -> getRequireResizeImageView("file:icons/dvd.png")
+        }
+    )
+
+    private lateinit var recordAudioButton: ToggleButton
+
+    private val pb = ProgressBar(0.0)
+
+    private var setRecordinPathWarning: Dialog? = null
+    var recordButtonHandler: RecordButtonHandler = RecordButtonHandler()
+        private set
+    private val recordingPathTextField: TextField =  TextField().apply {
+        minWidth = USE_PREF_SIZE
+        maxWidth = USE_PREF_SIZE
+        // Set dynamic TextField width
+        textProperty().onChange {currText ->
+            runLater {
+                val text = Text(currText)
+                text.styleClass.add("text")
+                text.font = font
+                val width = (text.layoutBounds.width
+                        + padding.left + padding.right
+                        + 2.0)
+                prefWidth = width
+                positionCaret(caretPosition)
+            }
+        }
+    }
+    private var recording = false
+    private var openTime = 0L
+    private var recTime = 0L
+    private var recCount: Timer? = null
+
+    override val root = toolbar {
+        newScheduleButton = button(
+            graphic = getImageViewForButton(
+                when (isMac()) {
+                    true -> "file:icons/filenewbig.png"
+                    false -> "file:icons/filenew.png"
+                }
+            )
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["new.schedule.tooltip"])
+            onAction = NewScheduleActionHandler()
+        }
+
+        openScheduleButton = button(
+            graphic = getImageViewForButton(
+                when (isMac()) {
+                    true -> "file:icons/fileopenbig.png"
+                    false -> "file:icons/fileopen.png"
+                }
+            )
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["open.schedule.tooltip"])
+            onAction = OpenScheduleActionHandler()
+        }
+
+        saveScheduleButton = button(
+            graphic = getImageViewForButton(
+                when (isMac()) {
+                    true -> "file:icons/filesavebig.png"
+                    else ->
+                        "file:icons/filesave.png"
+                }
+            )
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["save.schedule.tooltip"])
+            onAction = SaveScheduleActionHandler(false)
+        }
+
+        printScheduleButton = button(
+            graphic = getImageViewForButton(
+                when (isMac()) {
+                    true -> "file:icons/fileprintbig.png"
+                    else -> "file:icons/fileprint.png"
+                }
+            )
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["print.schedule.tooltip"])
+            onAction = PrintScheduleActionHandler()
+        }
+
+        separator()
+        newSongButton = button(
+            graphic = getImageViewForButton(
+                when (isMac()) {
+                    true -> "file:icons/newsongbig.png"
+                    else -> "file:icons/newsong.png"
+                }
+            )
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["new.song.tooltip"])
+            onAction = NewSongActionHandler()
+        }
+        separator()
+
+        quickInsertButton = button(
+            graphic = getImageViewForButton(when (isMac()) {
+                true -> "file:icons/lightningbig.png"
+                else -> "file:icons/lightning.png"
+            })
+        ) {
+            setToolbarButtonStyle()
+            tooltip(messages["quick.insert.text"])
+            onAction = QuickInsertActionHandler
+            setOnMouseEntered { add.hide() }
+        }
+
+        add = menubutton(
+            graphic = ImageView(Image(
+                if (get().useDarkTheme) "file:icons/add_item-light.png" else "file:icons/add_item.png"
+            )).apply {
+                isSmooth = true
+                fitWidth = 20.0
+                fitHeight = 20.0
+            }
+        ){
+            style = TOOLBAR_BUTTON_STYLE
+
+            setOnMouseEntered {
+                QueleaApp.get().mainWindow.requestFocus()
+                show()
+                openTime = Date().time
+            }
+            // Avoid menu being closed if users click to open it
+            setOnMouseClicked {
+                if (Date().time - openTime < 1000) show()
+            }
+
+            item(
+                name =  messages["add.presentation.tooltip"],
+                graphic = getImageViewForButton(when(isMac()){
+                    true -> "file:icons/powerpointbig.png"
+                    false -> "file:icons/powerpoint.png"
+                })
+            ){
+                onAction = AddPowerpointActionHandler()
+            }
+
+            item(
+                name = messages["add.multimedia.tooltip"],
+                graphic = getImageViewForButton(when(isMac()){
+                    true -> "file:icons/multimedia.png"
+                    false -> "file:icons/multimedia.png"
+                })
+            ){
+                onAction = AddVideoActionHandler()
+            }
+
+            item(
+                name = messages["add.timer.tooltip"],
+                graphic = when(isMac()) {
+                    true->getImageViewForButton("file:icons/timer-dark.png")
+                    false -> getRequireResizeImageView("file:icons/timer-dark.png")
+                }
+            ){
+                onAction = AddTimerActionHandler()
+            }
+
+
+            if (!isMac()) item(
+                name = messages["add.dvd.button"],
+                graphic = dvdImageStack
+            ){
+                onAction = AddDVDActionHandler()
+            }
+
+            item(
+                name = messages["add.pdf.tooltip"],
+                graphic = getImageViewForButton(when(isMac()){
+                    true -> "file:icons/add_pdfbig.png"
+                    false -> "file:icons/add_pdf.png"
+                })
+            ){
+                onAction = AddPdfActionHandler()
+            }
+
+            item(
+                name = messages["add.website"],
+                graphic = getImageViewForButton(when(isMac()){
+                    true -> "file:icons/web.png"
+                    false -> "file:icons/web-small.png"
+                })
+            ){
+                onAction = AddWebActionHandler()
+            }
+
+            item(
+                name=messages["add.images.panel"],
+                graphic = when(isMac()) {
+                    true ->getImageViewForButton("file:icons/image.png")
+                    false ->getRequireResizeImageView("file:icons/image.png")
+                }
+            ){
+                onAction = AddImageActionHandler()
+            }
+        }
+
+        separator()
+        manageNoticesButton = button(
+            graphic = when(isMac()) {
+                true -> getImageViewForButton("file:icons/infobig.png")
+                false -> getImageViewForButton("file:icons/info.png")
+            }
+        ){
+            setToolbarButtonStyle()
+            tooltip(messages["manage.notices.tooltip"])
+            onAction = ShowNoticesActionHandler()
+            setOnMouseEntered { add.hide() }
+        }
+
+        recordAudioButton = dumbToggleButton(
+            graphic = getImageViewForButton("file:icons/record.png")
+        ).apply {
+            setToolbarButtonStyle()
+            setOnMouseClicked {
+                if (get().recordingsPath != "") {
+                    when {
+                        recording -> stopRecording()
+                        else -> startRecording()
+                    }
+                } else {
+                    isSelected = false
+                    val setRecordingWarningBuilder = Dialog.Builder()
+                        .create()
+                        .setTitle(messages["recording.warning.title"])
+                        .setMessage(messages["recording.warning.message"])
+                        .addLabelledButton(messages["ok.button"]) {
+                            setRecordinPathWarning!!.hide()
+                            setRecordinPathWarning = null
+                        }
+                    setRecordingWarningBuilder.setWarningIcon().build()
+                        .also { setRecordinPathWarning = it }
+                        .showAndWait()
+                }
+            }
+
+            tooltip(messages["record.audio.tooltip"])
+        }
+    }
 
     /**
      * Create the toolbar and any associated shortcuts.
      */
-    public MainToolbar() {
-        if (Utils.isMac()) {
-            newScheduleButton = getButtonFromImage("file:icons/filenewbig.png");
-        } else {
-            newScheduleButton = getButtonFromImage("file:icons/filenew.png");
-        }
-        Utils.setToolbarButtonStyle(newScheduleButton);
-        newScheduleButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("new.schedule.tooltip")));
-        newScheduleButton.setOnAction(new NewScheduleActionHandler());
-        getItems().add(newScheduleButton);
-
-        if (Utils.isMac()) {
-            openScheduleButton = getButtonFromImage("file:icons/fileopenbig.png");
-        } else {
-            openScheduleButton = getButtonFromImage("file:icons/fileopen.png");
-        }
-        Utils.setToolbarButtonStyle(openScheduleButton);
-        openScheduleButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("open.schedule.tooltip")));
-        openScheduleButton.setOnAction(new OpenScheduleActionHandler());
-        getItems().add(openScheduleButton);
-
-        if (Utils.isMac()) {
-            saveScheduleButton = getButtonFromImage("file:icons/filesavebig.png");
-        } else {
-            saveScheduleButton = getButtonFromImage("file:icons/filesave.png");
-        }
-        Utils.setToolbarButtonStyle(saveScheduleButton);
-        saveScheduleButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("save.schedule.tooltip")));
-        saveScheduleButton.setOnAction(new SaveScheduleActionHandler(false));
-        getItems().add(saveScheduleButton);
-
-        if (Utils.isMac()) {
-            printScheduleButton = getButtonFromImage("file:icons/fileprintbig.png");
-        } else {
-            printScheduleButton = getButtonFromImage("file:icons/fileprint.png");
-        }
-        Utils.setToolbarButtonStyle(printScheduleButton);
-        printScheduleButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("print.schedule.tooltip")));
-        printScheduleButton.setOnAction(new PrintScheduleActionHandler());
-        getItems().add(printScheduleButton);
-
-        getItems().add(new Separator());
-
-        if (Utils.isMac()) {
-            newSongButton = getButtonFromImage("file:icons/newsongbig.png");
-        } else {
-            newSongButton = getButtonFromImage("file:icons/newsong.png");
-        }
-        Utils.setToolbarButtonStyle(newSongButton);
-        newSongButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("new.song.tooltip")));
-        newSongButton.setOnAction(new NewSongActionHandler());
-        getItems().add(newSongButton);
-
-        getItems().add(new Separator());
-
-        if (Utils.isMac()) {
-            quickInsertButton = getButtonFromImage("file:icons/lightningbig.png");
-        } else {
-            quickInsertButton = getButtonFromImage("file:icons/lightning.png");
-        }
-        Utils.setToolbarButtonStyle(quickInsertButton);
-        quickInsertButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("quick.insert.text")));
-        quickInsertButton.setOnAction(new QuickInsertActionHandler());
-        getItems().add(quickInsertButton);
-
-        add = new MenuButton("");
-
-        ImageView iv = new ImageView(new Image(QueleaProperties.get().getUseDarkTheme() ? "file:icons/add_item-light.png" : "file:icons/add_item.png"));
-        iv.setSmooth(true);
-        iv.setFitWidth(20);
-        iv.setFitHeight(20);
-        add.setGraphic(iv);
-
-        add.setStyle(Utils.TOOLBAR_BUTTON_STYLE);
-        getItems().add(add);
-        add.setOnMouseEntered(evt -> {
-            QueleaApp.get().getMainWindow().requestFocus();
-            add.show();
-            openTime = new Date().getTime();
-        });
-
-        // Avoid menu being closed if users click to open it
-        add.setOnMouseClicked(e -> {
-            if (new Date().getTime() - openTime < 1000) {
-                add.show();
-            }
-        });
-
-        MenuItem addPresentationButton;
-        if (Utils.isMac()) {
-            addPresentationButton = getMenuItemFromImage("file:icons/powerpointbig.png");
-        } else {
-            addPresentationButton = getMenuItemFromImage("file:icons/powerpoint.png");
-        }
-        addPresentationButton.setText(LabelGrabber.INSTANCE.getLabel("add.presentation.tooltip"));
-        addPresentationButton.setOnAction(new AddPowerpointActionHandler());
-        add.getItems().add(addPresentationButton);
-
-        MenuItem addMultimediaButton;
-        if (Utils.isMac()) {
-            addMultimediaButton = getMenuItemFromImage("file:icons/multimedia.png");
-        } else {
-            addMultimediaButton = getMenuItemFromImage("file:icons/multimedia.png");
-        }
-        addMultimediaButton.setText(LabelGrabber.INSTANCE.getLabel("add.multimedia.tooltip"));
-        addMultimediaButton.setOnAction(new AddVideoActionHandler());
-        add.getItems().add(addMultimediaButton);
-
-        MenuItem addTimerButton;
-        if (Utils.isMac()) {
-            addTimerButton = getMenuItemFromImage("file:icons/timer-dark.png");
-        } else {
-            addTimerButton = getMenuItemFromImage("file:icons/timer-dark.png", 24, 24, false, true);
-        }
-        addTimerButton.setText(LabelGrabber.INSTANCE.getLabel("add.timer.tooltip"));
-        addTimerButton.setOnAction(new AddTimerActionHandler());
-        add.getItems().add(addTimerButton);
-
-        if (Utils.isMac()) {
-            loadingView = new ImageView(new Image("file:icons/loading.gif"));
-        } else {
-            loadingView = new ImageView(new Image("file:icons/loading.gif", 24, 24, false, true));
-        }
-        loadingView.setFitHeight(24);
-        loadingView.setFitWidth(24);
-        dvdImageStack = new StackPane();
-        ImageView dvdIV;
-        if (Utils.isMac()) {
-            dvdIV = new ImageView(new Image("file:icons/dvd.png"));
-        } else {
-            dvdIV = new ImageView(new Image(QueleaProperties.get().getUseDarkTheme() ? "file:icons/dvd-light.png" : "file:icons/dvd.png", 24, 24, false, true));
-        }
-        dvdIV.setFitWidth(24);
-        dvdIV.setFitHeight(24);
-        dvdImageStack.getChildren().add(dvdIV);
-
-        MenuItem addDVDButton = new MenuItem(LabelGrabber.INSTANCE.getLabel("add.dvd.button"), dvdImageStack);
-        addDVDButton.setOnAction(new AddDVDActionHandler());
-        if (!Utils.isMac()) {
-            add.getItems().add(addDVDButton);
-        }
-
-        MenuItem addPdfButton;
-        if (Utils.isMac()) {
-            addPdfButton = getMenuItemFromImage("file:icons/add_pdfbig.png");
-        } else {
-            addPdfButton = getMenuItemFromImage("file:icons/add_pdf.png");
-        }
-        addPdfButton.setText(LabelGrabber.INSTANCE.getLabel("add.pdf.tooltip"));
-        addPdfButton.setOnAction(new AddPdfActionHandler());
-        add.getItems().add(addPdfButton);
-
-        MenuItem addWebButton;
-        if (Utils.isMac()) {
-            addWebButton = getMenuItemFromImage("file:icons/web.png");
-        } else {
-            addWebButton = getMenuItemFromImage("file:icons/web-small.png");
-        }
-        addWebButton.setText(LabelGrabber.INSTANCE.getLabel("add.website"));
-        addWebButton.setOnAction(new AddWebActionHandler());
-        add.getItems().add(addWebButton);
-
-        MenuItem addImageGroupButton;
-        if (Utils.isMac()) {
-            addImageGroupButton = getMenuItemFromImage("file:icons/image.png");
-        } else {
-            addImageGroupButton = getMenuItemFromImage("file:icons/image.png", 24, 24, false, true);
-        }
-        addImageGroupButton.setText(LabelGrabber.INSTANCE.getLabel("add.images.panel"));
-        addImageGroupButton.setOnAction(new AddImageActionHandler());
-        add.getItems().add(addImageGroupButton);
-
-        getItems().add(new Separator());
-
-        if (Utils.isMac()) {
-            manageNoticesButton = getButtonFromImage("file:icons/infobig.png");
-        } else {
-            manageNoticesButton = getButtonFromImage("file:icons/info.png");
-        }
-        Utils.setToolbarButtonStyle(manageNoticesButton);
-        manageNoticesButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("manage.notices.tooltip")));
-        manageNoticesButton.setOnAction(new ShowNoticesActionHandler());
-        getItems().add(manageNoticesButton);
-
+    init {
         // Auto-hide add menu
-        quickInsertButton.setOnMouseEntered(evt -> {
-            add.hide();
-        });
-        manageNoticesButton.setOnMouseEntered(evt -> {
-            add.hide();
-        });
-        QueleaApp.get().getMainWindow().getMainPanel().getRoot().setOnMouseEntered(evt -> {
-            add.hide();
-        });
-        QueleaApp.get().getMainWindow().getMainMenuBar().setOnMouseEntered(evt -> {
-            add.hide();
-        });
-
-        recordingsHandler = new RecordButtonHandler();
-
-        recordingPathTextField = new TextField();
-        recordingPathTextField.setMinWidth(Region.USE_PREF_SIZE);
-        recordingPathTextField.setMaxWidth(Region.USE_PREF_SIZE);
-
-        // Set dynamic TextField width
-        recordingPathTextField.textProperty().addListener((ov, prevText, currText) -> {
-            Platform.runLater(() -> {
-                Text text = new Text(currText);
-                text.getStyleClass().add("text");
-                text.setFont(recordingPathTextField.getFont());
-                double width = text.getLayoutBounds().getWidth()
-                        + recordingPathTextField.getPadding().getLeft() + recordingPathTextField.getPadding().getRight()
-                        + 2d;
-                recordingPathTextField.setPrefWidth(width);
-                recordingPathTextField.positionCaret(recordingPathTextField.getCaretPosition());
-            });
-        });
-
-        recordAudioButton = getToggleButtonFromImage("file:icons/record.png");
-        Utils.setToolbarButtonStyle(recordAudioButton);
-        recording = false;
-        recordAudioButton.setOnMouseClicked(e -> {
-            if (!QueleaProperties.get().getRecordingsPath().equals("")) {
-                if (recording) {
-                    stopRecording();
-                } else {
-                    startRecording();
-                }
-            } else {
-                recordAudioButton.setSelected(false);
-                Dialog.Builder setRecordingWarningBuilder = new Dialog.Builder()
-                        .create()
-                        .setTitle(LabelGrabber.INSTANCE.getLabel("recording.warning.title"))
-                        .setMessage(LabelGrabber.INSTANCE.getLabel("recording.warning.message"))
-                        .addLabelledButton(LabelGrabber.INSTANCE.getLabel("ok.button"), (ActionEvent t) -> {
-                            setRecordinPathWarning.hide();
-                            setRecordinPathWarning = null;
-                        });
-                setRecordinPathWarning = setRecordingWarningBuilder.setWarningIcon().build();
-                setRecordinPathWarning.showAndWait();
-            }
-        });
-        recordAudioButton.setTooltip(new Tooltip(LabelGrabber.INSTANCE.getLabel("record.audio.tooltip")));
-        getItems().add(recordAudioButton);
-
+        FX.find<MainPanel>().root.setOnMouseEntered { add.hide() }
+        QueleaApp.get().mainWindow.mainMenuBar.setOnMouseEntered { add.hide() }
     }
 
-    public void setToggleButtonText(String text) {
-        recordAudioButton.setText(text);
+    fun setToggleButtonText(text: String?) {
+        recordAudioButton.text = text
     }
 
-    private Button getButtonFromImage(String uri) {
-        return new Button("", getImageViewForButton(uri));
+    private fun getRequireResizeImageView(
+        uri: String,
+        width: Int = 24,
+        height: Int = 24,
+        preserveRatio: Boolean = false,
+        smooth: Boolean = true,
+        useTheme : Boolean = true
+    ): ImageView {
+        val iv = ImageView(
+            Image(
+                if (useTheme && get().useDarkTheme) uri.replace(".png", "-light.png") else uri,
+                width.toDouble(),
+                height.toDouble(),
+                preserveRatio,
+                smooth
+            )
+        )
+        iv.isSmooth = true
+        iv.fitWidth = 24.0
+        iv.fitHeight = 24.0
+        return iv
     }
 
-    private ToggleButton getToggleButtonFromImage(String uri) {
-        return new ToggleButton("", getImageViewForButton(uri));
-    }
 
-    private Button getButtonFromImage(String uri, int width, int height, boolean preserveRatio, boolean smooth) {
-        ImageView iv = new ImageView(new Image(uri, width, height, preserveRatio, smooth));
-        iv.setSmooth(true);
-        iv.setFitWidth(24);
-        iv.setFitHeight(24);
-        return new Button("", iv);
-    }
-
-    private MenuItem getMenuItemFromImage(String uri) {
-        return new MenuItem("", getImageViewForButton(uri));
-    }
-
-    private MenuItem getMenuItemFromImage(String uri, int width, int height, boolean preserveRatio, boolean smooth) {
-        ImageView iv = new ImageView(new Image(QueleaProperties.get().getUseDarkTheme() ? uri.replace(".png", "-light.png") : uri, width, height, preserveRatio, smooth));
-        iv.setSmooth(true);
-        iv.setFitWidth(24);
-        iv.setFitHeight(24);
-        return new MenuItem("", iv);
-    }
-
-    private ImageView getImageViewForButton(String uri) {
-        ImageView iv = new ImageView(new Image(QueleaProperties.get().getUseDarkTheme() ? uri.replace(".png", "-light.png") : uri));
-        iv.setSmooth(true);
-        iv.setFitWidth(24);
-        iv.setFitHeight(24);
-        return iv;
+    private fun getImageViewForButton(uri: String, useTheme: Boolean = true): ImageView {
+        val iv = ImageView(Image(if (useTheme && get().useDarkTheme) uri.replace(".png", "-light.png") else uri))
+        iv.isSmooth = true
+        iv.fitWidth = 24.0
+        iv.fitHeight = 24.0
+        return iv
     }
 
     /**
      * Set if the DVD is loading.
-     * <p>
+     *
+     *
      *
      * @param loading true if it's loading, false otherwise.
      */
-    public void setDVDLoading(boolean loading) {
-        if (loading && !dvdImageStack.getChildren().contains(loadingView)) {
-            dvdImageStack.getChildren().add(loadingView);
+    fun setDVDLoading(loading: Boolean) {
+        if (loading && loadingView !in dvdImageStack.children) {
+            dvdImageStack.children.add(loadingView)
         } else if (!loading) {
-            dvdImageStack.getChildren().remove(loadingView);
+            dvdImageStack.children.remove(loadingView)
         }
     }
 
-    public void startRecording() {
-        recordAudioButton.setSelected(true);
-        recording = true;
-//        getItems().add(pb);
-        getItems().add(recordingPathTextField);
-        recordAudioButton.setText("Recording...");
-        recordAudioButton.setSelected(true);
-        recordingsHandler = new RecordButtonHandler();
-        recordingsHandler.passVariables("rec", pb, recordingPathTextField, recordAudioButton);
-        final int interval = 1000; // 1000 ms
-        recCount = new Timer(interval, (java.awt.event.ActionEvent e) -> {
-            recTime += interval;
-            setTime(recTime, recordAudioButton);
-        });
-        recCount.start();
+    fun startRecording() {
+        recordAudioButton.isSelected = true
+        recording = true
+        //        getItems().add(pb);
+        root.items.add(recordingPathTextField)
+        recordAudioButton.text = "Recording..."
+        recordAudioButton.isSelected = true
+        recordButtonHandler = RecordButtonHandler()
+        recordButtonHandler.passVariables("rec", pb, recordingPathTextField, recordAudioButton)
+        val interval = 1000 // 1000 ms
+        recCount = Timer(interval) {
+            recTime += interval.toLong()
+            recordAudioButton.setTime(recTime)
+        }
+        recCount!!.start()
     }
 
-    public void stopRecording() {
-        recordingsHandler.passVariables("stop", pb, recordingPathTextField, recordAudioButton);
-        recordAudioButton.setSelected(false);
-        recording = false;
-        recCount.stop();
-//        getItems().remove(pb);
-        getItems().remove(recordingPathTextField);
-        recordAudioButton.setText("");
-        recordAudioButton.setSelected(false);
-        recTime = 0;
-    }
-
-    public RecordButtonHandler getRecordButtonHandler() {
-        return recordingsHandler;
+    fun stopRecording() {
+        recordButtonHandler.passVariables("stop", pb, recordingPathTextField, recordAudioButton)
+        recordAudioButton.isSelected = false
+        recording = false
+        recCount!!.stop()
+        //        getItems().remove(pb);
+        root.items.remove(recordingPathTextField)
+        recordAudioButton.text = ""
+        recordAudioButton.isSelected = false
+        recTime = 0
     }
 
     /**
      * Method to set elapsed time on ToggleButton
      *
+     * @receiver                ToggleButton to set time
      * @param elapsedTimeMillis Time elapsed recording last was started
-     * @param tb                ToggleButton to set time
      */
-    private void setTime(long elapsedTimeMillis, ToggleButton tb) {
-        float elapsedTimeSec = elapsedTimeMillis / 1000F;
-        int hours = (int) elapsedTimeSec / 3600;
-        int minutes = (int) (elapsedTimeSec % 3600) / 60;
-        int seconds = (int) elapsedTimeSec % 60;
-        String time = String.format("%02d:%02d:%02d", hours, minutes, seconds);
-        Platform.runLater(() -> {
-            tb.setText(time);
-        });
+    private fun ToggleButton.setTime(elapsedTimeMillis: Long) {
+        val elapsedTimeSec = elapsedTimeMillis / 1000f
+        val hours = elapsedTimeSec.toInt() / 3600
+        val minutes = (elapsedTimeSec % 3600).toInt() / 60
+        val seconds = elapsedTimeSec.toInt() % 60
+        val time = "%02d:%02d:%02d".format(hours, minutes, seconds)
+        runLater { text = time }
     }
 }

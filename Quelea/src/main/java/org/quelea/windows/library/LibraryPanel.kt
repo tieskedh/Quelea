@@ -28,8 +28,13 @@ import tornadofx.*
 import java.util.logging.Level
 
 
-class LibraryPanelController: Controller() {
-    private val controller = find<LibraryTimerController>()
+class LibraryController: Controller() {
+    val timerController = find<LibraryTimerController>()
+    val songController by inject<LibrarySongController>()
+    val bibleController by inject<LibraryBibleController>()
+
+
+
     private val _timerPanelVisible = booleanProperty(
         !get().timerDir.listFiles().isNullOrEmpty()
     )
@@ -37,8 +42,7 @@ class LibraryPanelController: Controller() {
 
     val selectedTab = intProperty(0)
 
-    private val songController by inject<LibrarySongController>()
-    private val bibleController by inject<LibraryBibleController>()
+
 
     fun showSongTab(): LibrarySongController {
         selectedTab.set(0)
@@ -54,7 +58,7 @@ class LibraryPanelController: Controller() {
      */
     fun forceTimer() {
         _timerPanelVisible.set(true)
-        controller.refreshTimers()
+        timerController.refreshTimers()
     }
 }
 
@@ -68,7 +72,7 @@ class LibraryPanelController: Controller() {
  */
 class LibraryPanel : View() {
 
-    val controller by inject<LibraryPanelController>()
+    val controller by inject<LibraryController>()
 
 
     override val root = vbox {

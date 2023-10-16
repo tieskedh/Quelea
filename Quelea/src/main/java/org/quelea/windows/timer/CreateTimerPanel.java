@@ -49,7 +49,7 @@ import org.quelea.services.languages.LabelGrabber;
 import org.quelea.services.utils.FileFilters;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
-import org.quelea.windows.library.LibraryPanelController;
+import org.quelea.windows.library.LibraryController;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.schedule.ScheduleList;
 import org.quelea.windows.newsong.ThemePanel;
@@ -226,7 +226,7 @@ public class CreateTimerPanel extends Stage {
                     }
                     try {
                         TimerIO.timerToFile(displayable, f);
-                        FX.find(LibraryPanelController.class).forceTimer();
+                        FX.find(LibraryController.class).forceTimer();
                     } catch (IOException ex) {
                         LoggerUtils.getLogger().log(Level.WARNING, "Could not save timer to file");
                     }

@@ -43,6 +43,7 @@ import org.quelea.windows.newsong.SongEntryWindow;
 import org.quelea.windows.options.PreferencesDialog;
 
 import javafx.scene.Parent;
+import tornadofx.FX;
 
 /**
  * The main window used to control the projection.
@@ -102,9 +103,9 @@ public class MainWindow extends Stage {
         menuBar = new MainMenuBar();
 
         HBox toolbarPanel = new HBox();
-        mainToolbar = new MainToolbar();
-        HBox.setHgrow(mainToolbar, Priority.ALWAYS);
-        toolbarPanel.getChildren().add(mainToolbar);
+        mainToolbar = FX.find(MainToolbar.class);
+        HBox.setHgrow(mainToolbar.getRoot(), Priority.ALWAYS);
+        toolbarPanel.getChildren().add(mainToolbar.getRoot());
 
         if (Utils.isMac()) {
             LOGGER.log(Level.INFO, "Is mac: true, using system menu bar");

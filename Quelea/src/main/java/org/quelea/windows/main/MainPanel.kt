@@ -22,6 +22,7 @@ import javafx.scene.control.SplitPane
 import org.quelea.services.utils.LoggerUtils
 import org.quelea.services.utils.QueleaProperties.Companion.get
 import org.quelea.windows.library.LibraryPanel
+import org.quelea.windows.library.LibraryController
 import org.quelea.windows.main.schedule.SchedulePanel
 import tornadofx.*
 import java.util.logging.Level
@@ -45,7 +46,7 @@ class MainPanel : View() {
      *
      * @return the library panel.
      */
-    lateinit var libraryPanel: LibraryPanel
+    private val libraryController by inject<LibraryController>()
 
     /**
      * Get the panel displaying the selection of the preview lyrics.
@@ -76,9 +77,7 @@ class MainPanel : View() {
                         schedulePanel = it
                     }.root)
                     LOGGER.log(Level.INFO, "Creating library panel")
-                     add<LibraryPanel>{
-                         libraryPanel = this
-                    }
+                     add<LibraryPanel>()
                 }
 
                 LOGGER.log(Level.INFO, "Creating preview panel")

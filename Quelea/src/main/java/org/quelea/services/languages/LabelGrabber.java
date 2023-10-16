@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.Utils;
+import tornadofx.FX;
 
 /**
  * Responsible for grabbing the appropriate labels from the current langauges
@@ -87,6 +88,8 @@ public class LabelGrabber extends ResourceBundle {
                 }
             }
         }
+
+        FX.Companion.setMessages(this);
     }
 
     /**
