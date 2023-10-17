@@ -39,6 +39,7 @@ import org.quelea.server.AutoDetectServer;
 import org.quelea.server.MobileLyricsServer;
 import org.quelea.server.RemoteControlServer;
 import org.quelea.services.languages.LabelGrabber;
+import org.quelea.services.notice.NoticeController;
 import org.quelea.services.utils.FontInstaller;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
@@ -260,7 +261,7 @@ public final class Main extends Application {
                     Platform.runLater(() -> {
                         mainWindow.getMainPanel().getLivePanel().registerDisplayCanvas(fullScreenWindow.getCanvas());
                         mainWindow.getMainPanel().getLivePanel().registerDisplayWindow(fullScreenWindow);
-                        mainWindow.getNoticeDialog().registerCanvas(fullScreenWindow.getCanvas());
+                        FX.find(NoticeController.class).registerNoticeContainer(fullScreenWindow.getCanvas().getNoticeDrawer());
                         if (lyricsHidden) {
                             fullScreenWindow.hide();
                         } else {

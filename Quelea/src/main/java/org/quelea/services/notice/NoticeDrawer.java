@@ -32,6 +32,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import org.jetbrains.annotations.NotNull;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.windows.main.DisplayCanvas;
 import org.quelea.windows.main.QueleaApp;
@@ -42,7 +43,7 @@ import org.quelea.utils.FXFontMetrics;
  * <p/>
  * @author Michael
  */
-public class NoticeDrawer {
+public class NoticeDrawer implements NoticeContainer {
     
     public enum NoticePosition {
         
@@ -88,7 +89,8 @@ public class NoticeDrawer {
      * <p/>
      * @param notice the notice to add.
      */
-    public synchronized void addNotice(Notice notice) {
+    @Override
+    public synchronized void addNotice(@NotNull Notice notice) {
         notices.add(notice);
         playNotices();
     }
@@ -102,17 +104,17 @@ public class NoticeDrawer {
                 return;
             }
             oldNotices.add(notices.get(0));
-            final HBox textGroup = new HBox(notices.get(0).getFont().getFont().getSize() * 2);
+            final HBox textGroup = new HBox(notices.get(0).font.getFont().getSize() * 2);
             final StringBuilder builder = new StringBuilder();
             for (int i = 0; i < oldNotices.size(); i++) {
                 Notice notice = oldNotices.get(i);
-                builder.append(notice.getText());
-                Text noticeText = new Text(notice.getText());
-                noticeText.setFill(notice.getColor().getColor());
-                noticeText.setFont(notice.getFont().getFont());
+                builder.append(notice.text);
+                Text noticeText = new Text(notice.text);
+                noticeText.setFill(notice.color.getColor());
+                noticeText.setFont(notice.font.getFont());
                 textGroup.getChildren().add(noticeText);
             }
-            FXFontMetrics metrics = new FXFontMetrics(oldNotices.get(0).getFont().getFont());
+            FXFontMetrics metrics = new FXFontMetrics(oldNotices.get(0).font.getFont());
             double displayWidth = QueleaApp.get().getProjectionWindow().getWidth();
             double width = metrics.computeStringWidth(builder.toString()) + textGroup.getSpacing() * (notices.size() - 1);
             if (QueleaProperties.get().getNoticePosition()==NoticePosition.BOTTOM) {
@@ -192,7 +194,8 @@ public class NoticeDrawer {
      * <p/>
      * @param notice notice to remove.
      */
-    public synchronized void removeNotice(Notice notice) {
+    @Override
+    public synchronized void removeNotice(@NotNull Notice  notice) {
         notices.remove(notice);
     }
 
@@ -201,7 +204,8 @@ public class NoticeDrawer {
      * <p/>
      * @return a list of all the notices.
      */
-    public synchronized List<Notice> getNotices() {
+    @Override
+    public synchronized @NotNull List<Notice> getNotices() {
         return new ArrayList<>(notices);
     }
 }

@@ -48,10 +48,8 @@ class LibrarySongPreviewCanvas(
         isMouseTransparent=true
         setMaxSize(250.0, 167.0)
 
-
-        canvas=opcr(parent=this,
-            DisplayCanvas(false, false, false, ::updateCanvas, DisplayCanvas.Priority.LOW)
-        ){
+        canvas = DisplayCanvas(false, false, false, ::updateCanvas, DisplayCanvas.Priority.LOW)
+        opcr(parent=this, canvas){
             setMaxSize(250.0, 167.0)
             displayableProp.onChange { update() }
         }

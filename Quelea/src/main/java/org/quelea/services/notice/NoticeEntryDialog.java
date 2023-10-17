@@ -53,6 +53,7 @@ import org.quelea.services.utils.Utils;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.windows.main.widgets.NumberSpinner;
 import org.quelea.windows.newsong.FontSelectionDialog;
+import tornadofx.FX;
 
 /**
  * The entry dialog for creating a notice.
@@ -193,7 +194,7 @@ public class NoticeEntryDialog extends Stage {
         southPanel.getChildren().add(saveButton);
         deleteButton = new Button(LabelGrabber.INSTANCE.getLabel("delete.notice.button"), new ImageView(new Image("file:icons/removedb.png")));
         deleteButton.setOnAction(e -> {
-            QueleaApp.get().getMainWindow().getNoticeDialog().getTemplates().getItems().remove(notice);
+            FX.find(NoticeController.class).getTemplateList().remove(notice);
             NoticeFileHandler.deleteNotice(notice);
             notice = null;
             hide();
@@ -235,17 +236,18 @@ public class NoticeEntryDialog extends Stage {
             edit = false;
             notice = new Notice(text.getText(), numberTimes, new SerializableColor(colourPicker.getValue()), new SerializableFont(Font.font(fontSelection.getValue(), FontWeight.NORMAL, FontPosture.REGULAR, QueleaProperties.get().getNoticeFontSize())));
         } else {
-            notice.setText(text.getText());
+            notice.text = text.getText();
             notice.setTimes(numberTimes);
-            notice.setColor(new SerializableColor(colourPicker.getValue()));
-            notice.setFont(new SerializableFont(Font.font(fontSelection.getValue(), FontWeight.NORMAL, FontPosture.REGULAR, QueleaProperties.get().getNoticeFontSize())));
+            notice.color = new SerializableColor(colourPicker.getValue());
+            notice.font = new SerializableFont(Font.font(fontSelection.getValue(), FontWeight.NORMAL, FontPosture.REGULAR, QueleaProperties.get().getNoticeFontSize()));
         }
         if (save) {
             NoticeFileHandler.saveNotice(notice);
+            NoticeController noticeController = FX.find(NoticeController.class);
             if (template) {
-                QueleaApp.get().getMainWindow().getNoticeDialog().getTemplates().getItems().set(QueleaApp.get().getMainWindow().getNoticeDialog().getTemplates().getSelectionModel().getSelectedIndex(), notice);
-            } else if (!QueleaApp.get().getMainWindow().getNoticeDialog().getTemplates().getItems().contains(notice)) {
-                QueleaApp.get().getMainWindow().getNoticeDialog().getTemplates().getItems().add(notice);
+                noticeController.replaceSelectedTemplate(notice);
+            } else if (!noticeController.getTemplateList().contains(notice)) {
+                noticeController.getTemplateList().add(notice);
             }
             edit = false;
         }
@@ -311,10 +313,10 @@ public class NoticeEntryDialog extends Stage {
             if (!infinite.isSelected()) {
                 times.setNumber(notice.getTimes());
             }
-            text.setText(notice.getText());
-            colourPicker.setValue(notice.getColor().getColor());
+            text.setText(notice.text);
+            colourPicker.setValue(notice.color.getColor());
             colourPicker.fireEvent(new ActionEvent());
-            fontSelection.setValue(notice.getFont().getFont().getFamily());
+            fontSelection.setValue(notice.font.getFont().getFamily());
             if (!template) {
                 addButton.setText(LabelGrabber.INSTANCE.getLabel("edit.notice.button"));
             } else {

@@ -52,7 +52,7 @@ class NoticeFileHandler {
      * @param notice the notice to save
      */
     static void saveNotice(Notice notice) {
-        String fileName = QueleaProperties.get().getNoticeDir().getAbsolutePath() + "/" + notice.getCreationTime() + ".qnf";
+        String fileName = QueleaProperties.get().getNoticeDir().getAbsolutePath() + "/" + notice.creationTime + ".qnf";
         File f = new File(fileName);
         try {
             if (!f.exists()) {
@@ -67,7 +67,7 @@ class NoticeFileHandler {
     }
 
     static boolean deleteNotice(Notice notice) {
-        String fileName = QueleaProperties.get().getNoticeDir().getAbsolutePath() + "/" + notice.getCreationTime() + ".qnf";
+        String fileName = QueleaProperties.get().getNoticeDir().getAbsolutePath() + "/" + notice.creationTime + ".qnf";
         File f = new File(fileName);
         return f.delete();
     }
@@ -100,7 +100,7 @@ class NoticeFileHandler {
                 Node node = doc.getFirstChild();
                 Notice notice = Notice.parseXML(node);
                 try {
-                    notice.setCreationTime(Long.parseLong(f.getName().replaceAll(".qnf", "")));
+                    notice.creationTime = Long.parseLong(f.getName().replaceAll(".qnf", ""));
                 } catch (NumberFormatException e) {
                     LOGGER.log(Level.WARNING, "Error getting notice file name", e);
                 }
