@@ -37,6 +37,7 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.windows.main.DisplayCanvas;
 import org.quelea.windows.main.QueleaApp;
 import org.quelea.utils.FXFontMetrics;
+import tornadofx.FX;
 
 /**
  * Responsible for drawing the notice animation on a particular canvas.
@@ -169,7 +170,7 @@ public class NoticeDrawer implements NoticeContainer {
                             notices.remove(notice);
                         }
                     }
-                    QueleaApp.get().getMainWindow().getNoticeDialog().noticesUpdated();
+                    FX.find(NoticeDialogView.class).noticesUpdated();
                     if (!notices.isEmpty()) {
                         playNotices();
                     } else {

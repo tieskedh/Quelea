@@ -30,7 +30,6 @@ import javafx.stage.Stage;
 import org.quelea.data.GlobalThemeStore;
 import org.quelea.data.bible.BibleBrowseDialog;
 import org.quelea.data.bible.BibleSearchDialog;
-import org.quelea.services.notice.NoticeDialog;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.SceneInfo;
@@ -57,7 +56,6 @@ public class MainWindow extends Stage {
     private final MainPanel mainpanel;
     private SongEntryWindow songEntryWindow;
     private final TranslationChoiceDialog translationChoiceDialog;
-    private final NoticeDialog noticeDialog;
     private final MainMenuBar menuBar;
     private final MainToolbar mainToolbar;
     private final PreferencesDialog preferencesDialog;
@@ -77,7 +75,6 @@ public class MainWindow extends Stage {
         Utils.addIconsToStage(this);
         BorderPane mainPane = new BorderPane();
         VBox.setVgrow(mainPane, Priority.SOMETIMES);
-        noticeDialog = new NoticeDialog();
         globalThemeStore = new GlobalThemeStore();
         LOGGER.log(Level.INFO, "Creating main window");
         if (setApplicationWindow) {
@@ -169,15 +166,6 @@ public class MainWindow extends Stage {
         return mainpanel;
     }
 
-    /**
-     * Get the notice dialog on this main window.
-     * <p/>
-     *
-     * @return the notice dialog.
-     */
-    public NoticeDialog getNoticeDialog() {
-        return noticeDialog;
-    }
 
     /**
      * Get the options dialog on this main window.

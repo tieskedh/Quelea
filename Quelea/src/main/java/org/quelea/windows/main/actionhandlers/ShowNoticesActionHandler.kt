@@ -16,22 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import javafx.stage.Modality
+import org.quelea.services.notice.NoticeDialogView
+import tornadofx.*
 
 /**
  * Action listener to show the notices.
  * @author Michael
  */
-public class ShowNoticesActionHandler implements EventHandler<ActionEvent> {
-
-    @Override
-    public void handle(ActionEvent t) {
-        QueleaApp.get().getMainWindow().getNoticeDialog().show();
-        QueleaApp.get().getMainWindow().getNoticeDialog().toFront();
+class ShowNoticesActionHandler : EventHandler<ActionEvent?> {
+    override fun handle(t: ActionEvent?) {
+        FX.find<NoticeDialogView>().openModal(modality = Modality.NONE)
     }
-    
 }
