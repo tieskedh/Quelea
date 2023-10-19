@@ -197,7 +197,7 @@ class Bible private constructor(
 
             var information : BibleInfo? = null
             list.asSequence().forEachIndexed { i, item ->
-                if (item.nodeName.equals("information", ignoreCase = true)) {
+                if (item nameMatches "information") {
                     information = BibleInfo.parseXML(item)
                 } else if (item.isBibleBookNode()) {
                     val book = BibleBook.parseXML(item, i, BibleBookNameUtil.getBookNameForIndex(i, list.size))

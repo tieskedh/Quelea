@@ -82,7 +82,7 @@ class BibleBook private constructor(
         append("\" bname=\"")
         append(bookName.escapeXML())
         append("\">")
-        chapterList.joinTo(this, transform = BibleChapter::toXML)
+        chapterList.joinTo(this, "", transform = BibleChapter::toXML)
         append("</biblebook>")
     }
 

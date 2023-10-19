@@ -49,7 +49,7 @@ public class SwitchBibleVersionActionHandler implements EventHandler<ActionEvent
         Set<Bible> excludes = new HashSet<>();
         for (Displayable d : sl.getSelectionModel().getSelectedItems()) {
             if (d instanceof BiblePassage) {
-                excludes.add(((BiblePassage) d).getVerses()[0].getChapter().getBook().getBible());
+                excludes.add(((BiblePassage) d).getVerses().get(0).getChapter().getBook().getBible());
             }
         }
         Bible exclude = null;
@@ -74,7 +74,7 @@ public class SwitchBibleVersionActionHandler implements EventHandler<ActionEvent
                 }
                 BibleVerse firstVerse = newVerses.get(0);
                 String summary = firstVerse.getChapter().getBook() + " " + passage.getLocation().split(" (?=\\d)")[1] + "\n" + b.getBibleName();
-                replaceMap.put(passage, new BiblePassage(summary, newVerses.toArray(new BibleVerse[newVerses.size()]), theme, passage.getMulti()));
+                replaceMap.put(passage, new BiblePassage(summary, List.copyOf(newVerses), theme, passage.getMulti()));
             }
         }
         List<Integer> selected = new ArrayList<>(sl.getSelectionModel().getSelectedIndices());

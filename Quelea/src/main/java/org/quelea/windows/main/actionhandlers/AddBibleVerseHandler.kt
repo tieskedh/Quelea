@@ -67,7 +67,7 @@ class AddBibleVerseHandler {
 
         sl.replacePassage(
             passage,
-            BiblePassage(summary, newVerses.toTypedArray<BibleVerse?>(), theme, passage.multi)
+            BiblePassage(summary, newVerses, theme, passage.multi)
         )
     }
 

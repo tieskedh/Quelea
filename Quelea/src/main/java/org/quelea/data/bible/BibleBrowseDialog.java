@@ -110,7 +110,7 @@ public class BibleBrowseDialog extends Stage implements BibleChangeListener {
      * @param chapter the chapter to select.
      */
     public void setChapter(BibleChapter chapter) {
-        setBook(chapter.getBook());
+        setBook(chapter.book);
     }
 
     /**

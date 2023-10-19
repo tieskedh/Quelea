@@ -54,7 +54,7 @@ public class BiblePassage implements TextDisplayable, Serializable {
     private String summary;
     private String[] smallText;
     private List<TextSection> textSections;
-    private BibleVerse[] verses;
+    private List<BibleVerse> verses;
     private ThemeDTO theme;
     private final boolean multi;
     private Map<Dimension,Double> fontSizeCache;
@@ -66,7 +66,7 @@ public class BiblePassage implements TextDisplayable, Serializable {
      * @param location the location of the passage in the bible.
      * @param verses the verses, in order, that make up the passage.
      */
-    public BiblePassage(String biblename, String location, BibleVerse[] verses, boolean multi) {
+    public BiblePassage(String biblename, String location, List<BibleVerse> verses, boolean multi) {
         this(location + "\n" + biblename, verses, new ThemeDTO(ThemeDTO.DEFAULT_FONT,
                 ThemeDTO.DEFAULT_FONT_COLOR, ThemeDTO.DEFAULT_FONT, ThemeDTO.DEFAULT_TRANSLATE_FONT_COLOR,
                 ThemeDTO.DEFAULT_BACKGROUND, ThemeDTO.DEFAULT_SHADOW, false, false, false, true, 3, -1), multi);
@@ -79,7 +79,7 @@ public class BiblePassage implements TextDisplayable, Serializable {
      * @param verses the verses in the passage.
      * @param theme the theme of the passage.
      */
-    public BiblePassage(String summary, BibleVerse[] verses, ThemeDTO theme, boolean multi) {
+    public BiblePassage(String summary, List<BibleVerse> verses, ThemeDTO theme, boolean multi) {
         fontSizeCache = new HashMap<>();
         this.summary = summary;
         this.multi = multi;
@@ -87,7 +87,7 @@ public class BiblePassage implements TextDisplayable, Serializable {
         for (int i = 0; i < smallText.length; i++) {
             smallText[i] = Utils.removeTags(smallText[i]);
         }
-        this.verses = Arrays.copyOf(verses, verses.length);
+        this.verses = List.copyOf(verses);
         this.theme = theme;
         textSections = new ArrayList<>();
         fillTextSections();
@@ -201,8 +201,8 @@ public class BiblePassage implements TextDisplayable, Serializable {
      *
      * @return A copy of the verses shown in this passage.
      */
-    public BibleVerse[] getVerses() {
-        return Arrays.copyOf(verses, verses.length);
+    public List<BibleVerse> getVerses() {
+        return List.copyOf(verses);
     }
 
     /**
@@ -321,7 +321,7 @@ public class BiblePassage implements TextDisplayable, Serializable {
                 tempTheme = ThemeDTO.fromString(node.getTextContent(), Collections.emptyMap());
             }
         }
-        return new BiblePassage(summary, verses.toArray(new BibleVerse[verses.size()]), tempTheme, multi);
+        return new BiblePassage(summary, List.copyOf(verses), tempTheme, multi);
     }
 
     /**

@@ -28,7 +28,7 @@ class LibraryBibleController : Controller() {
     /**
      * All the verses currently shown in the [LibraryBiblePanel].
      */
-    val versesArray get() = verses.toTypedArray()
+    fun copyVerseList() = verses.toList()
     
     val booklessBiblePassageRefProp = stringProperty("").apply {
         onChange { updateSelectedVerses() }
@@ -88,7 +88,7 @@ class LibraryBibleController : Controller() {
             val passage = BiblePassage(
                 selectedBible.name,
                 bibleLocation,
-                versesArray,
+                copyVerseList(),
                 multiPart
             )
             find<SchedulePanel>().scheduleList.add(passage)
@@ -244,7 +244,7 @@ class LibraryBibleController : Controller() {
             }
 
             val wholeChapters = sequenceOfRange(cVP.fromChapter+1 until cVP.toChapter)
-                .flatMap { book.getChapter(it)!!.versesList }
+                .flatMap { book.getChapter(it)!!.verses }
 
             val remainingVerses = if (cVP.isSingleChapter) emptySequence()
             else sequenceOfRange(0 .. cVP.toVerse)

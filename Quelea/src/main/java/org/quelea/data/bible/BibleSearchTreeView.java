@@ -18,6 +18,8 @@
 package org.quelea.data.bible;
 
 import java.util.Collection;
+import java.util.List;
+
 import javafx.event.Event;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ScrollPane;
@@ -73,12 +75,12 @@ public class BibleSearchTreeView extends TreeView<BibleInterface> {
             if (ti.getValue() instanceof BibleVerse) {
                 textPane.getChildren().clear();
                 BibleChapter chapter = (BibleChapter) ti.getValue().getParent();
-                BibleVerse[] verses = chapter.getVerses();
+                List<BibleVerse> verses = chapter.getVerses();
                 BibleVerse selected = (BibleVerse) ti.getValue();
 
                 int x = selected.getNum() - 1;
-                for (int i = 0; i < verses.length; i++) {
-                    Text text = new Text(verses[i].toString() + " ");
+                for (int i = 0; i < verses.size(); i++) {
+                    Text text = new Text(verses.get(i).toString() + " ");
                     text.getStyleClass().add("text");
                     if (i == x) {
                         text.setFont(Font.font("Sans", FontWeight.BOLD, 14));

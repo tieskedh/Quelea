@@ -15,158 +15,80 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.io.Serializable;
-import java.lang.ref.SoftReference;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.quelea.services.utils.Utils;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.quelea.services.utils.escapeXML
+import org.quelea.utils.asSequence
+import org.quelea.utils.javaTrim
+import org.quelea.utils.nameMatchesAny
+import org.w3c.dom.Node
+import java.io.Serializable
+import java.lang.ref.SoftReference
+import java.util.*
 
 /**
  * A chapter in the bible.
- * <p/>
+ *
+ * 
+ * @constructor Create a new bible chapter.
+ * @property num the chapter number (or -1 if it's unknown.)
+ * @property verses the verses in this chapter.
+ * @property verseMap the verses in this chapter, associated by their number.
+ * @property iD the unique ID for this bible chapter.
+ * @property book the book this chapter is part of.
+ *
  * @author Michael
  */
-public final class BibleChapter implements BibleInterface, Serializable {
+class BibleChapter private constructor(
+    override val num: Int,
+    verseList: List<BibleVerse>
+) : BibleInterface, Serializable {
+    private val verseMap = verseList.associateBy { it.num }
+    val verses : List<BibleVerse> get() = verseMap.values.toList()
 
-    private static int statId = 0;
-    private final int num;
-    private final Map<Integer, BibleVerse> verses;
-    private transient SoftReference<String> softRefText;
-    private final int id = statId++;
-    private BibleBook book;
-
-    /**
-     * Create a new bible chapter.
-     * <p/>
-     * @param num the chapter number (or -1 if it's unknown.)
-     */
-    private BibleChapter(int num) {
-        this.num = num;
-        verses = new HashMap<>();
+    init {
+        verseList.forEach { it.chapter = this }
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 67 * hash + this.num;
-        hash = 67 * hash + Objects.hashCode(this.verses);
-        return hash;
+    @Transient
+    private var softRefText: SoftReference<String?>? = null
+
+    val iD = statId++
+
+    lateinit var book: BibleBook
+
+
+    override fun hashCode(): Int {
+        var hash = 3
+        hash = 67 * hash + num
+        hash = 67 * hash + verses.hashCode()
+        return hash
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final BibleChapter other = (BibleChapter) obj;
-        if (this.num != other.num) {
-            return false;
-        }
-        if (!Objects.equals(this.verses, other.verses)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Set the bible book this chapter is part of.
-     * <p/>
-     * @param book the book this chapter is part of.
-     */
-    public void setBook(BibleBook book) {
-        this.book = book;
-    }
-
-    /**
-     * Get the book this chapter is part of.
-     * <p/>
-     * @return the book this chapter is part of.
-     */
-    public BibleBook getBook() {
-        return book;
-    }
-
-    /**
-     * Parse some XML representing this object and return the object it
-     * represents.
-     * <p/>
-     * @param node the XML node representing this object.
-     * @param defaultNum the default chapter number if no other information is
-     * available.
-     * @return the object as defined by the XML.
-     */
-    public static BibleChapter parseXML(Node node, int defaultNum) {
-        int num = -1;
-        if (node.getAttributes().getNamedItem("cnumber") != null) {
-            try {
-                num = Integer.parseInt(node.getAttributes().getNamedItem("cnumber").getNodeValue().trim());
-            } catch (NumberFormatException ex) {
-            }
-        } else if (node.getAttributes().getNamedItem("number") != null) {
-            try {
-                num = Integer.parseInt(node.getAttributes().getNamedItem("number").getNodeValue().trim());
-            } catch (NumberFormatException ex) {
-            }
-        } else if (node.getAttributes().getNamedItem("n") != null) {
-            try {
-                num = Integer.parseInt(node.getAttributes().getNamedItem("n").getNodeValue().trim());
-            } catch (NumberFormatException ex) {
-            }
-        } else if (node.getAttributes().getNamedItem("id") != null) {
-            try {
-                num = Integer.parseInt(node.getAttributes().getNamedItem("id").getNodeValue().trim());
-            } catch (NumberFormatException ex) {
-            }
-        }
-        if (num == -1) {
-            num = defaultNum;
-        }
-        BibleChapter ret = new BibleChapter(num);
-        NodeList list = node.getChildNodes();
-        for (int i = 0; i < list.getLength(); i++) {
-            if (list.item(i).getNodeName().equalsIgnoreCase("verse")
-                    || list.item(i).getNodeName().equalsIgnoreCase("vers")
-                    || list.item(i).getNodeName().equalsIgnoreCase("v")) {
-                BibleVerse verse = BibleVerse.parseXML(list.item(i));
-                if (verse != null) {
-                    verse.setChapter(ret);
-                    ret.addVerse(verse);
-                }
-            }
-        }
-        return ret;
+    override fun equals(other: Any?): Boolean {
+        if (other !is BibleChapter) return false
+        if (num != other.num) return false
+        return verses == other.verses
     }
 
     /**
      * Generate an XML representation of this chapter.
-     * <p/>
+     *
+     *
      * @return an XML representation of this chapter.
      */
-    public String toXML() {
-        StringBuilder ret = new StringBuilder();
-        ret.append("<chapter");
+    fun toXML() = buildString {
+        append("<chapter")
         if (num != -1) {
-            ret.append(" cnumber=\"");
-            ret.append(num);
-            ret.append('\"');
+            append(" cnumber=\"")
+            append(num)
+            append('\"')
         }
-        ret.append(">");
-        for (BibleVerse verse : verses.values()) {
-            ret.append(Utils.escapeXML(verse.toXML()));
+        append(">")
+        verses.joinTo(this, "") {
+            it.toXML().escapeXML()
         }
-        ret.append("</chapter>");
-        return ret.toString();
+        append("</chapter>")
     }
 
     /**
@@ -174,91 +96,62 @@ public final class BibleChapter implements BibleInterface, Serializable {
      *
      * @return the chapter number as a string.
      */
-    @Override
-    public String toString() {
-        return Integer.toString(num);
-    }
-
-    /**
-     * Add a verse to this chapter.
-     * <p/>
-     * @param verse the verse to add.
-     */
-    private void addVerse(BibleVerse verse) {
-        verses.put(verse.getNum(), verse);
-    }
-
-    /**
-     * Get all the verses in this chapter .
-     * <p/>
-     * @return all the verses in the chapter.
-     */
-    public BibleVerse[] getVerses() {
-        return verses.values().toArray(new BibleVerse[verses.size()]);
-    }
-
-    public List<BibleVerse> getVersesList() {
-        return List.copyOf(verses.values());
-    }
+    override fun toString() = num.toString()
 
     /**
      * Get a specific verse from this chapter.
-     * <p/>
+     *
+     *
      * @param i the verse number to get.
      * @return the verse at the specified number, or null if it doesn't exist.
      */
-    public @Nullable BibleVerse getVerse(int i) {
-        return verses.get(i);
-    }
+    fun getVerse(i: Int): BibleVerse? = verseMap[i]
+
+    override val name = toString()
 
     /**
      * Get all the text in this chapter as a string.
-     * <p/>
+     *
+     *
      * @return all the text in this chapter as a string.
      */
-    public String getFullText() {
-        if (softRefText == null || softRefText.get() == null) {
-            StringBuilder ret = new StringBuilder();
-            for (BibleVerse verse : getVerses()) {
-                ret.append(verse.toString()).append(' ');
-            }
-            String hardText = ret.toString();
-            this.softRefText = new SoftReference<>(hardText);
+    override val text: String
+        get() = softRefText?.get() ?: run {
+            verses.joinToString(" ")
+                .also { softRefText = SoftReference(it) }
         }
-        return softRefText.get();
-    }
+    override val parent: BibleInterface?
+        get() = book
 
-    /**
-     * Get the unique ID for this bible chapter.
-     * <p/>
-     * @return the unique ID for this bible chapter.
-     */
-    public int getID() {
-        return id;
-    }
+    companion object {
+        private var statId = 0
 
-    /**
-     * Get the number of this chapter (or -1 if no number has been set.)
-     * <p/>
-     * @return the chapter number.
-     */
-    @Override
-    public int getNum() {
-        return num;
-    }
+        /**
+         * Parse some XML representing this object and return the object it
+         * represents.
+         *
+         *
+         * @param node the XML node representing this object.
+         * @param defaultNum the default chapter number if no other information is
+         * available.
+         * @return the object as defined by the XML.
+         */
+        @JvmStatic
+        fun parseXML(node: Node, defaultNum: Int): BibleChapter {
+            val num = node.attributes.run {
+                getNamedItem("cnumber")
+                    ?: getNamedItem("number")
+                    ?: getNamedItem("n")
+                    ?: getNamedItem("id")
+            }?.nodeValue?.javaTrim()?.toIntOrNull()
+                ?: defaultNum
 
-    @Override
-    public @NotNull String getName() {
-        return toString();
-    }
+            val verses = node.childNodes.asSequence()
+                .filter { it.nameMatchesAny("verse", "vers", "v") }
+                .mapNotNull { BibleVerse.parseXML(it) }
+                .toList()
 
-    @Override
-    public @NotNull String getText() {
-        return getFullText();
-    }
-
-    @Override
-    public BibleInterface getParent() {
-        return getBook();
+            return BibleChapter(num, verses)
+        }
     }
 }
