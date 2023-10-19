@@ -15,287 +15,214 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.UnicodeReader;
-import org.quelea.services.utils.Utils;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.quelea.services.utils.*
+import org.quelea.utils.asSequence
+import org.quelea.utils.nameMatches
+import org.quelea.utils.nameMatchesAny
+import org.w3c.dom.Node
+import org.xml.sax.InputSource
+import org.xml.sax.SAXException
+import java.io.File
+import java.io.IOException
+import java.io.Serializable
+import java.util.*
+import java.util.logging.Level
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.parsers.ParserConfigurationException
 
 /**
  * A bible containing a number of books as well as some information.
- * <p/>
+ *
+ * @constructor Create a new bible.
+ *
+ * @property bibleName the name of the bible.
+ * @property information the [BibleInfo] object providing general information about the bible.
  * @author Michael
  */
-public final class Bible implements BibleInterface, Serializable {
+class Bible private constructor(
+    val bibleName: String
+) : BibleInterface, Serializable {
 
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final String name;
-    private BibleInfo information;
-    private final List<BibleBook> books;
-    private String filePath;
+    var information: BibleInfo? = null
+        private set
 
-    /**
-     * Create a new bible.
-     * <p/>
-     * @param name the name of the bible.
-     */
-    private Bible(String name) {
-        books = new ArrayList<>();
-        this.name = name;
-    }
-    
+    private val books = mutableListOf<BibleBook>()
+
     /**
      * @return the path of the file this bible has been read from on null if n.a.
      */
-    public String getFilePath() {
-        return filePath;
-    }
-    
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
+    var filePath: String? = null
+
+    override fun hashCode(): Int {
+        var hash = 5
+        hash = 19 * hash + bibleName.hashCode()
+        hash = 19 * hash + information.hashCode()
+        hash = 19 * hash + books.hashCode()
+        return hash
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 5;
-        hash = 19 * hash + Objects.hashCode(this.name);
-        hash = 19 * hash + Objects.hashCode(this.information);
-        hash = 19 * hash + Objects.hashCode(this.books);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Bible other = (Bible) obj;
-        if (!Objects.equals(this.name, other.name)) {
-            return false;
-        }
-        if (!Objects.equals(this.information, other.information)) {
-            return false;
-        }
-        if (!Objects.equals(this.books, other.books)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Parse a bible from a specified bible and return it as an object.
-     * <p/>
-     * @param file the file where the XML bible is stored.
-     * @return the bible as a java object, or null if an error occurred.
-     */
-    public static Bible parseBible(final File file) {
-        LOGGER.log(Level.INFO, "Parsing bible: " + file.getAbsolutePath());
-        try {
-            if (file.exists()) {
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
-                Document doc = builder.parse(new InputSource(new UnicodeReader(new FileInputStream(file), Utils.getEncoding(file))));
-                NodeList list = doc.getChildNodes();
-                for (int i = 0; i < list.getLength(); i++) {
-                    if (list.item(i).getNodeName().equalsIgnoreCase("xmlbible")
-                            || list.item(i).getNodeName().equalsIgnoreCase("bible")) {
-                        return parseXML(list.item(i), Utils.getFileNameWithoutExtension(file.getName()));
-                    }
-                    else if (list.item(i).getNodeName().equalsIgnoreCase("osis")) {
-                        NodeList innerList = list.item(i).getChildNodes();
-                        for (int j = 0; j < innerList.getLength(); j++) {
-                            if (innerList.item(j).getNodeName().equalsIgnoreCase("osisText")) {
-                                return parseXML(innerList.item(j), Utils.getFileNameWithoutExtension(file.getName()));
-                            }
-                        }
-                    }
-                }
-                LOGGER.log(Level.WARNING, "Couldn''t parse the bible {0} because I couldn''t find any <bible> or <xmlbible> root tags :-(", file);
-                return null;
-            } else {
-                LOGGER.log(Level.WARNING, "Couldn''t parse the bible {0} because the file doesn''t exist!", file);
-                return null;
-            }
-        } catch (ParserConfigurationException | SAXException | IOException ex) {
-            LOGGER.log(Level.WARNING, "Couldn't parse the bible " + file, ex);
-            return null;
-        }
-    }
-
-    /**
-     * Parse some XML representing this object and return the object it
-     * represents.
-     * <p/>
-     * @param node the XML node representing this object.
-     * @param defaultName the name of the bible if none is specified in the XML
-     * file.
-     * @return the object as defined by the XML.
-     */
-    public static Bible parseXML(Node node, String defaultName) {
-        String name = "";
-        if (node.getAttributes().getNamedItem("biblename") != null) {
-            name = node.getAttributes().getNamedItem("biblename").getNodeValue();
-        } else if (node.getAttributes().getNamedItem("name") != null) {
-            name = node.getAttributes().getNamedItem("name").getNodeValue();
-        } else {
-            name = defaultName;
-        }
-        Bible ret = new Bible(name);
-        List<Node> list = toList(node.getChildNodes());
-        list = list.stream().flatMap(n -> {
-                    if (n.getNodeName().equalsIgnoreCase("testament")) {
-                        return toList(n.getChildNodes()).stream();
-                    } else {
-                        return Stream.of(n);
-                    }
-                })
-                .filter(item -> ret.isBibleBookNode(item))
-                .collect(Collectors.toList());
-        for (int i = 0; i < list.size(); i++) {
-            Node item = list.get(i);
-            if (item.getNodeName().equalsIgnoreCase("information")) {
-                ret.information = BibleInfo.parseXML(item);
-            } else if (ret.isBibleBookNode(item)) {
-                BibleBook book = BibleBook.parseXML(item, i, BibleBookNameUtil.getBookNameForIndex(i, list.size()));
-                book.setBible(ret);
-                ret.addBook(book);
-            }
-        }
-        LOGGER.log(Level.INFO, "Parsed bible: {0}. Contains {1} books.", new Object[]{ret.getName(), list.size()});
-        return ret;
-    }
-
-    private boolean isBibleBookNode(Node n) {
-        return n.getNodeName().equalsIgnoreCase("biblebook")
-                || n.getNodeName().equalsIgnoreCase("b")
-                || n.getNodeName().equalsIgnoreCase("book")
-                || (n.getNodeName().equalsIgnoreCase("div") && n.getAttributes().getNamedItem("type") != null && n.getAttributes().getNamedItem("type").getNodeValue().equals("book"));
-    }
-
-    private static List<Node> toList(NodeList nodeList) {
-        List<Node> ret = new ArrayList<>();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            ret.add(nodeList.item(i));
-        }
-        return ret;
+    override fun equals(other: Any?): Boolean = when {
+        other !is Bible -> false
+        bibleName != other.bibleName -> false
+        information != other.information -> false
+        else -> books == other.books
     }
 
     /**
      * Generate an XML representation of this bible.
-     * <p/>
+     *
+     *
      * @return an XML representation of this bible.
      */
-    public String toXML() {
-        StringBuilder ret = new StringBuilder();
-        ret.append("<xmlbible xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"zef2005.xsd\" version=\"2.0.1.18\" status=\"v\" biblename=\"");
-        ret.append(Utils.escapeXML(name));
-        ret.append("\" type=\"x-bible\" revision=\"0\">");
-        if (information != null) {
-            ret.append(information.toXML());
-        }
-        for (BibleBook book : books) {
-            ret.append(book.toXML());
-        }
-        ret.append("</xmlbible>");
-        return ret.toString();
-    }
-
-    /**
-     * Get general information about this bible.
-     * <p/>
-     * @return the bibleinfo object providing general information about the
-     * bible.
-     */
-    public BibleInfo getInformation() {
-        return information;
-    }
-
-    /**
-     * The name of the bible.
-     * <p/>
-     * @return the name of the bible.
-     */
-    public String getBibleName() {
-        return name;
+    fun toXML() = buildString {
+        append("<xmlbible xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"zef2005.xsd\" version=\"2.0.1.18\" status=\"v\" biblename=\"")
+        append(bibleName.escapeXML())
+        append("\" type=\"x-bible\" revision=\"0\">")
+        information?.let { append(it.toXML()) }
+        books.joinTo(this, "", transform = BibleBook::toXML)
+        append("</xmlbible>")
     }
 
     /**
      * Get a summary of the bible.
-     * <p/>
+     *
+     *
      * @return a summary of the bible.
      */
-    @Override
-    public String toString() {
-        String abbrev = Utils.getAbbreviation(getName());
-        StringBuilder ret = new StringBuilder(getName());
-        if (!(getName().contains("(") || getName().contains(")")) && abbrev.length() > 1) {
-            ret.append(" (").append(abbrev).append(")");
+    override fun toString(): String {
+        val abbrev = getAbbreviation(name)
+        return buildString {
+            append(name)
+            if (!("(" in name || ")" in name) && abbrev.length > 1) {
+                append(" (").append(abbrev).append(")")
+            }
         }
-        return ret.toString();
     }
 
     /**
      * Add a book to the bible.
-     * <p/>
+     *
+     *
      * @param book the book to add.
      */
-    public void addBook(BibleBook book) {
-        books.add(book);
+    fun addBook(book: BibleBook) {
+        books.add(book)
     }
 
     /**
      * Get all the books currently contained within this bible.
-     * <p/>
+     *
+     *
      * @return all the books in the bible.
      */
-    public BibleBook[] getBooks() {
-        return books.toArray(new BibleBook[books.size()]);
-    }
+    fun getBooks(): Array<BibleBook> = books.toTypedArray<BibleBook>()
 
-    public List<BibleBook> getBooklist() {
-        return List.copyOf(books);
-    }
+    val booklist: List<BibleBook>
+        get() = books.toList()
 
-    @Override
-    public int getNum() {
-        return -1;
-    }
+    override fun getNum(): Int = -1
 
-    @Override
-    public String getText() {
-        return toString();
-    }
+    override fun getText(): String = toString()
 
-    @Override
-    public String getName() {
-        return getBibleName();
-    }
+    override fun getName(): String = bibleName
 
-    @Override
-    public BibleInterface getParent() {
-        return null;
+    override fun getParent(): BibleInterface? = null
+
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
+
+        /**
+         * Parse a bible from a specified bible and return it as an object.
+         *
+         *
+         * @param file the file where the XML bible is stored.
+         * @return the bible as a java object, or null if an error occurred.
+         */
+        @JvmStatic
+        fun parseBible(file: File): Bible? {
+            LOGGER.log(Level.INFO, "Parsing bible: " + file.absolutePath)
+            return try {
+                if (!file.exists()) {
+                    LOGGER.log(Level.WARNING, "Couldn''t parse the bible {0} because the file doesn''t exist!", file)
+                    return null
+                }
+
+                val factory = DocumentBuilderFactory.newInstance()
+                val builder = factory.newDocumentBuilder()
+                val doc = builder.parse(InputSource(UnicodeReader(file.inputStream(), file.resolveEncoding())))
+
+                val bibleNode = doc.childNodes.asSequence().firstNotNullOfOrNull { item ->
+                    when {
+                        item.nameMatchesAny("xmlbible", "bible") -> item
+                        item nameMatches "osis" -> item.childNodes.asSequence()
+                            .firstOrNull { it nameMatches "osisText" }
+                        else -> null
+                    }
+                }
+
+                bibleNode?.let {
+                    return parseXML(it, file.nameWithoutExtension)
+                }
+
+                LOGGER.log(
+                    Level.WARNING,
+                    "Couldn''t parse the bible {0} because I couldn''t find any <bible> or <xmlbible> root tags :-(",
+                    file
+                )
+                null
+            } catch (ex: Exception) {
+                when (ex) {
+                    is ParserConfigurationException, is SAXException, is IOException -> {
+                        LOGGER.log(Level.WARNING, "Couldn''t parse the bible $file", ex)
+                        null
+                    }
+                    else -> throw ex
+                }
+            }
+        }
+
+        private fun Node.isBibleBookNode() = nameMatchesAny("biblebook", "b", "book") ||
+                (nameMatches("div") && attributes.getNamedItem("type")?.nodeValue == "book")
+
+        /**
+         * Parse some XML representing this object and return the object it
+         * represents.
+         *
+         *
+         * @param node the XML node representing this object.
+         * @param defaultName the name of the bible if none is specified in the XML
+         * file.
+         * @return the object as defined by the XML.
+         */
+        fun parseXML(node: Node, defaultName: String): Bible {
+            val name = node.attributes.run {
+                getNamedItem("biblename") ?: getNamedItem("name")
+            }?.nodeValue ?: defaultName
+
+            val ret = Bible(name)
+
+            val list = node.childNodes.asSequence().flatMap {
+                when {
+                    it.nameMatches("testament") -> it.childNodes.asSequence()
+                    else -> sequenceOf(it)
+                }
+            }.filter { it.isBibleBookNode() }
+                .toList()
+
+            list.asSequence().forEachIndexed { i, item ->
+                if (item.nodeName.equals("information", ignoreCase = true)) {
+                    ret.information = BibleInfo.parseXML(item)
+                } else if (item.isBibleBookNode()) {
+                    val book = BibleBook.parseXML(item, i, BibleBookNameUtil.getBookNameForIndex(i, list.size))
+                    book.bible = ret
+                    ret.addBook(book)
+                }
+            }
+
+            LOGGER.log(Level.INFO, "Parsed bible: {0}. Contains {1} books.", arrayOf<Any>(ret.name, list.size))
+            return ret
+        }
     }
 }

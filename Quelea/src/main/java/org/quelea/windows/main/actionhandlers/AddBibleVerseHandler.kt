@@ -87,9 +87,9 @@ class AddBibleVerseHandler {
     }
     companion object {
 
-        private operator fun Bible.get(bookNum : Int, chapterNum : Int, verseNum : Int) : BibleVerse? {
-            return this.books[bookNum].getChapter(chapterNum).getVerse(verseNum)
-        }
+        private operator fun Bible.get(bookNum : Int, chapterNum : Int, verseNum : Int) : BibleVerse? =
+            this.booklist[bookNum].getChapter(chapterNum).getVerse(verseNum)
+
         private fun getPassageNumber(passage: BiblePassage, chapter: Int, lastNumber: Int): String {
             var passageNumber = passage.location.split(Regex(" (?=\\d)"))
                 .dropLastWhile { it.isEmpty() }[1]

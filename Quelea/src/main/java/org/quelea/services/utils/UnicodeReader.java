@@ -5,11 +5,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PushbackInputStream;
 import java.io.Reader;
+import java.nio.charset.Charset;
 
 public class UnicodeReader extends Reader {
 
     private static final int BOM_SIZE = 4;
     private final InputStreamReader reader;
+
+    public UnicodeReader(InputStream in, Charset charSet) throws IOException {
+        this(in, charSet.name());
+    }
 
     /**
      * Construct UnicodeReader
