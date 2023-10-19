@@ -15,108 +15,52 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.Utils;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.escapeXML
+import org.quelea.utils.asSequence
+import org.quelea.utils.javaTrim
+import org.quelea.utils.nameMatchesAny
+import org.w3c.dom.Node
+import java.io.Serializable
+import java.util.logging.Level
 
 /**
  * A book in the bible.
  *
+ * @constructor Create a new book.
+ * @property bookNumber the number of the book.
+ * @property bookName the name of the book.
+ * @property bible the bible this book is part of.
  * @author Michael
  */
-public final class BibleBook implements BibleInterface, Serializable {
+class BibleBook private constructor(
+    val bookNumber: Int,
+    val bookName: String,
+    val bSName: String,
+    val chapterList: List<BibleChapter>
+) : BibleInterface, Serializable {
 
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private int bookNumber;
-    private String bookName;
-    private final List<BibleChapter> chapters;
-    private String htmlText;
-    private List<Integer> caretPosList;
-    private Bible bible;
-    private String bsname;
+    init { chapterList.onEach { it.book = this } }
 
-    /**
-     * Create a new book.
-     */
-    private BibleBook() {
-        chapters = new ArrayList<>();
-        caretPosList = new ArrayList<>();
+
+    private val caretPosList = mutableListOf<Int>()
+    lateinit var bible: Bible
+
+    override fun hashCode(): Int {
+        var hash = 7
+        hash = 43 * hash + bookNumber
+        hash = 43 * hash + bookName.hashCode()
+        hash = 43 * hash + chapterList.hashCode()
+        return hash
     }
 
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 43 * hash + this.bookNumber;
-        hash = 43 * hash + Objects.hashCode(this.bookName);
-        hash = 43 * hash + Objects.hashCode(this.chapters);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final BibleBook other = (BibleBook) obj;
-        if (this.bookNumber != other.bookNumber) {
-            return false;
-        }
-        if (!Objects.equals(this.bookName, other.bookName)) {
-            return false;
-        }
-        if (!Objects.equals(this.chapters, other.chapters)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Set the bible this book is part of.
-     *
-     * @param bible the bible this book is part of.
-     */
-    public void setBible(Bible bible) {
-        this.bible = bible;
-    }
-
-    /**
-     * Get the text of this chapter as nicely formatted HTML.
-     *
-     * @return the text of this chapter.
-     */
-    public String getFullText() {
-        if (htmlText == null) {
-            caretPosList.clear();
-            int pos = 0;
-            StringBuilder ret = new StringBuilder(1000);
-            for (BibleChapter chapter : getChapters()) {
-                caretPosList.add(pos);
-                String numStr = Integer.toString(chapter.getNum());
-                pos += numStr.length();
-                ret.append("Chapter ").append(numStr);
-                ret.append("\n");
-                for (BibleVerse verse : chapter.getVerses()) {
-                    String verseText = verse.getText();
-                    pos += verseText.length();
-                    ret.append(verseText).append(' ');
-                }
-                ret.append("\n");
-            }
-            htmlText = ret.toString();
-        }
-        return htmlText;
+    override fun equals(other: Any?): Boolean = when {
+        other !is BibleBook -> false
+        bookNumber != other.bookNumber -> false
+        bookName != other.bookName -> false
+        else -> chapterList == other.chapterList
     }
 
     /**
@@ -125,87 +69,21 @@ public final class BibleBook implements BibleInterface, Serializable {
      * @param num the number of the chapter in which to get the index.
      * @return
      */
-    public int getCaretIndexOfChapter(int num) {
-        return caretPosList.get(num - 1);
-    }
-
-    /**
-     * Get the bible this book is part of.
-     *
-     * @return the bible this book is part of.
-     */
-    public Bible getBible() {
-        return bible;
-    }
-
-    /**
-     * Parse some XML representing this object and return the object it
-     * represents.
-     *
-     * @param node the XML node representing this object.
-     * @param defaultBookNum the default book number if none is available on the
-     * XML file.
-     * @return the object as defined by the XML.
-     */
-    public static BibleBook parseXML(Node node, int defaultBookNum, String defaultBookName) {
-        BibleBook ret = new BibleBook();
-        if (node.getAttributes().getNamedItem("bnumber") != null) {
-            ret.bookNumber = Integer.parseInt(node.getAttributes().getNamedItem("bnumber").getNodeValue().trim());
-        } else if (node.getAttributes().getNamedItem("number") != null) {
-            ret.bookNumber = Integer.parseInt(node.getAttributes().getNamedItem("number").getNodeValue().trim());
-        } else if (node.getAttributes().getNamedItem("id") != null) {
-            ret.bookNumber = Integer.parseInt(node.getAttributes().getNamedItem("id").getNodeValue().trim());
-        } else {
-            ret.bookNumber = defaultBookNum;
-        }
-
-        if (node.getAttributes().getNamedItem("bname") != null) {
-            ret.bookName = node.getAttributes().getNamedItem("bname").getNodeValue();
-        } else if (node.getAttributes().getNamedItem("n") != null) {
-            ret.bookName = node.getAttributes().getNamedItem("n").getNodeValue();
-        } else if (node.getAttributes().getNamedItem("name") != null) {
-            ret.bookName = node.getAttributes().getNamedItem("name").getNodeValue();
-        } else if (node.getAttributes().getNamedItem("osisID") != null) {
-            ret.bookName = node.getAttributes().getNamedItem("osisID").getNodeValue();
-        } else {
-            ret.bookName = defaultBookName;
-        }
-        
-        if (node.getAttributes().getNamedItem("bsname") != null) {
-            ret.bsname = node.getAttributes().getNamedItem("bsname").getNodeValue();
-        } else {
-            ret.bsname = ret.bookName;
-        }
-        NodeList list = node.getChildNodes();
-        for (int i = 0; i < list.getLength(); i++) {
-            if (list.item(i).getNodeName().equalsIgnoreCase("chapter")
-                    || list.item(i).getNodeName().equalsIgnoreCase("c")) {
-                BibleChapter chapter = BibleChapter.parseXML(list.item(i), i);
-                chapter.setBook(ret);
-                ret.addChapter(chapter);
-            }
-        }
-        LOGGER.log(Level.INFO, "Parsed " + ret.getChapters().length + " chapters in " + ret.bookName);
-        return ret;
-    }
+    fun getCaretIndexOfChapter(num: Int) = caretPosList[num - 1]
 
     /**
      * Generate an XML representation of this book.
      *
      * @return an XML representation of this book.
      */
-    public String toXML() {
-        StringBuilder ret = new StringBuilder();
-        ret.append("<biblebook bnumber=\"");
-        ret.append(bookNumber);
-        ret.append("\" bname=\"");
-        ret.append(Utils.escapeXML(bookName));
-        ret.append("\">");
-        for (BibleChapter chapter : chapters) {
-            ret.append(chapter.toXML());
-        }
-        ret.append("</biblebook>");
-        return ret.toString();
+    fun toXML() = buildString {
+        append("<biblebook bnumber=\"")
+        append(bookNumber)
+        append("\" bname=\"")
+        append(bookName.escapeXML())
+        append("\">")
+        chapterList.joinTo(this, transform = BibleChapter::toXML)
+        append("</biblebook>")
     }
 
     /**
@@ -213,37 +91,7 @@ public final class BibleBook implements BibleInterface, Serializable {
      *
      * @return the book's name.
      */
-    public String getBookName() {
-        return bookName;
-    }
-
-    /**
-     * Get the name of the book.
-     *
-     * @return the book's name.
-     */
-    @Override
-    public String toString() {
-        return bookName;
-    }
-
-    /**
-     * Get the number of the book.
-     *
-     * @return the book's number.
-     */
-    public int getBookNumber() {
-        return bookNumber;
-    }
-
-    /**
-     * Add a chapter to this book.
-     *
-     * @param chapter the chapter to add.
-     */
-    public void addChapter(BibleChapter chapter) {
-        chapters.add(chapter);
-    }
+    override fun toString(): String = bookName
 
     /**
      * Get a specific chapter from this book.
@@ -251,44 +99,86 @@ public final class BibleBook implements BibleInterface, Serializable {
      * @param i the chapter number to get.
      * @return the chapter at the specified number, or null if it doesn't exist.
      */
-    public BibleChapter getChapter(int i) {
-        if (i < chapters.size() && i >= 0) {
-            return chapters.get(i);
-        } else {
-            return null;
-        }
-    }
+    fun getChapter(i: Int): BibleChapter? = chapterList.getOrNull(i)
 
     /**
      * Get all the chapters in this book.
      *
      * @return all the chapters in the book.
      */
-    public BibleChapter[] getChapters() {
-        return chapters.toArray(new BibleChapter[chapters.size()]);
+    fun getChapters(): Array<BibleChapter> = chapterList.toTypedArray<BibleChapter>()
+    override val num = bookNumber
+    override val name = bookName
+
+    /**
+     * Get the text of this chapter as nicely formatted HTML.
+     *
+     * @return the text of this chapter.
+     */
+    override val text by lazy {
+        buildString(1000) {
+            caretPosList.clear()
+            var pos = 0
+            for (chapter in getChapters()) {
+                caretPosList.add(pos)
+                val numStr = chapter.num.toString()
+                pos += numStr.length
+                append("Chapter ").append(numStr)
+                appendLine()
+                chapter.verses.joinTo(this, " ") { verse ->
+                    verse.text.also {
+                        pos += it.length
+                    }
+                }
+                appendLine(' ')
+            }
+        }
     }
 
-    @Override
-    public int getNum() {
-        return getBookNumber();
-    }
+    override val parent : Bible get() = bible
 
-    @Override
-    public String getName() {
-        return getBookName();
-    }
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
 
-    public String getBSName() {
-        return bsname;
-    }
+        /**
+         * Parse some XML representing this object and return the object it
+         * represents.
+         *
+         * @param node the XML node representing this object.
+         * @param defaultBookNum the default book number if none is available on the
+         * XML file.
+         * @return the object as defined by the XML.
+         */
+        @JvmStatic
+        fun parseXML(node: Node, defaultBookNum: Int, defaultBookName: String): BibleBook {
 
-    @Override
-    public String getText() {
-        return getFullText();
-    }
+            val bookNumber = node.attributes.run {
+                getNamedItem("bnumber")
+                    ?: getNamedItem("number")
+                    ?: getNamedItem("id")
+            }?.nodeValue?.javaTrim()?.toInt() ?: defaultBookNum
 
-    @Override
-    public BibleInterface getParent() {
-        return getBible();
+            val bookName = node.attributes.run {
+                getNamedItem("bname")
+                    ?: getNamedItem("n")
+                    ?: getNamedItem("name")
+                    ?: getNamedItem("osisID")
+            }?.nodeValue ?: defaultBookName
+
+            val bSName = node.attributes.getNamedItem("bsname")?.nodeValue
+                ?: bookName
+
+
+            val chapters = node.childNodes.asSequence().mapIndexedNotNull {  i, item->
+                item.takeIf { it.nameMatchesAny("chapter", "c") }
+                    ?.let { BibleChapter.parseXML(it, i) }
+            }.toList()
+
+            val ret = BibleBook(bookNumber, bookName, bSName, chapters)
+
+
+            LOGGER.log(Level.INFO, "Parsed " + ret.chapterList.size + " chapters in " + ret.bookName)
+            return ret
+        }
     }
 }

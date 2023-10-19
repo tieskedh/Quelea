@@ -15,42 +15,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
 /**
  *
  * @author Ben Goodwin
  */
-
-
-public interface BibleInterface {
-    
+interface BibleInterface {
     /**
      * Returns the number associated - book/chapter/verse only
-     * <p/>
+     *
+     *
      * @return book/chapter/verse number
      */
-    int getNum();
-    
+    val num: Int
+
     /**
      * Returns Name of the bible section. Bible title, book name, chapter first verse.
-     * <p/>
+     *
+     *
+     *
      * @return Name of the bible/book/chapter
      */
-    String getName();
-    
+    val name: String
+
     /**
      * Returns the text associated with the bible section
-     * <p/>
+     *
+     *
+     *
      * @return Text of the whole bible section
      */
-    String getText();
-    
+    val text: String
+
     /**
      * Returns the bible section containing this item
-     * <p/>
+     *
+     *
      * @return bible/book/chapter
      */
-    BibleInterface getParent();
-    
+    val parent: BibleInterface?
 }

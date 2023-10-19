@@ -27,7 +27,6 @@ import org.xml.sax.SAXException
 import java.io.File
 import java.io.IOException
 import java.io.Serializable
-import java.util.*
 import java.util.logging.Level
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.ParserConfigurationException
@@ -42,13 +41,12 @@ import javax.xml.parsers.ParserConfigurationException
  * @author Michael
  */
 class Bible private constructor(
-    val bibleName: String
+    val bibleName: String,
+    val information : BibleInfo? = null,
+    val bookList : List<BibleBook>
 ) : BibleInterface, Serializable {
 
-    var information: BibleInfo? = null
-        private set
-
-    private val books = mutableListOf<BibleBook>()
+    init { bookList.onEach { it.bible = this } }
 
     /**
      * @return the path of the file this bible has been read from on null if n.a.
@@ -59,7 +57,7 @@ class Bible private constructor(
         var hash = 5
         hash = 19 * hash + bibleName.hashCode()
         hash = 19 * hash + information.hashCode()
-        hash = 19 * hash + books.hashCode()
+        hash = 19 * hash + bookList.hashCode()
         return hash
     }
 
@@ -67,7 +65,7 @@ class Bible private constructor(
         other !is Bible -> false
         bibleName != other.bibleName -> false
         information != other.information -> false
-        else -> books == other.books
+        else -> bookList == other.bookList
     }
 
     /**
@@ -81,7 +79,7 @@ class Bible private constructor(
         append(bibleName.escapeXML())
         append("\" type=\"x-bible\" revision=\"0\">")
         information?.let { append(it.toXML()) }
-        books.joinTo(this, "", transform = BibleBook::toXML)
+        bookList.joinTo(this, "", transform = BibleBook::toXML)
         append("</xmlbible>")
     }
 
@@ -102,33 +100,18 @@ class Bible private constructor(
     }
 
     /**
-     * Add a book to the bible.
-     *
-     *
-     * @param book the book to add.
-     */
-    fun addBook(book: BibleBook) {
-        books.add(book)
-    }
-
-    /**
      * Get all the books currently contained within this bible.
      *
      *
      * @return all the books in the bible.
      */
-    fun getBooks(): Array<BibleBook> = books.toTypedArray<BibleBook>()
+    fun getBooks(): Array<BibleBook> = bookList.toTypedArray<BibleBook>()
 
-    val booklist: List<BibleBook>
-        get() = books.toList()
+    override val num = -1
+    override val text get() = toString()
+    override val name get() = bibleName
 
-    override fun getNum(): Int = -1
-
-    override fun getText(): String = toString()
-
-    override fun getName(): String = bibleName
-
-    override fun getParent(): BibleInterface? = null
+    override val parent = null
 
     companion object {
         private val LOGGER = LoggerUtils.getLogger()
@@ -201,7 +184,6 @@ class Bible private constructor(
                 getNamedItem("biblename") ?: getNamedItem("name")
             }?.nodeValue ?: defaultName
 
-            val ret = Bible(name)
 
             val list = node.childNodes.asSequence().flatMap {
                 when {
@@ -211,18 +193,20 @@ class Bible private constructor(
             }.filter { it.isBibleBookNode() }
                 .toList()
 
+            val books = mutableListOf<BibleBook>()
+
+            var information : BibleInfo? = null
             list.asSequence().forEachIndexed { i, item ->
                 if (item.nodeName.equals("information", ignoreCase = true)) {
-                    ret.information = BibleInfo.parseXML(item)
+                    information = BibleInfo.parseXML(item)
                 } else if (item.isBibleBookNode()) {
                     val book = BibleBook.parseXML(item, i, BibleBookNameUtil.getBookNameForIndex(i, list.size))
-                    book.bible = ret
-                    ret.addBook(book)
+                    books+=book
                 }
             }
 
-            LOGGER.log(Level.INFO, "Parsed bible: {0}. Contains {1} books.", arrayOf<Any>(ret.name, list.size))
-            return ret
+            LOGGER.log(Level.INFO, "Parsed bible: {0}. Contains {1} books.", arrayOf<Any>(name, books.size))
+            return Bible(name, information, books)
         }
     }
 }

@@ -19,6 +19,7 @@ package org.quelea.data.bible;
 
 import java.io.Serializable;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 import org.quelea.services.utils.Utils;
 import org.w3c.dom.Node;
 
@@ -156,12 +157,12 @@ public final class BibleVerse implements BibleInterface, Serializable {
     }
 
     @Override
-    public String getName() {
+    public @NotNull String getName() {
         return getNum() + " " + getText();
     }
 
     @Override
-    public String getText() {
+    public @NotNull String getText() {
         return getVerseText();
     }
 

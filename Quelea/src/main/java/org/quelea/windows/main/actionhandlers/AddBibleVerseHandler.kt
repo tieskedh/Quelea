@@ -71,7 +71,6 @@ class AddBibleVerseHandler {
         )
     }
 
-
     private fun ScheduleList.replacePassage(
         old: BiblePassage,
         new  : BiblePassage
@@ -88,7 +87,7 @@ class AddBibleVerseHandler {
     companion object {
 
         private operator fun Bible.get(bookNum : Int, chapterNum : Int, verseNum : Int) : BibleVerse? =
-            this.booklist[bookNum].getChapter(chapterNum).getVerse(verseNum)
+            this.bookList[bookNum].getChapter(chapterNum)!!.getVerse(verseNum)
 
         private fun getPassageNumber(passage: BiblePassage, chapter: Int, lastNumber: Int): String {
             var passageNumber = passage.location.split(Regex(" (?=\\d)"))

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.quelea.services.utils.Utils;
 import org.w3c.dom.Node;
@@ -247,12 +248,12 @@ public final class BibleChapter implements BibleInterface, Serializable {
     }
 
     @Override
-    public String getName() {
+    public @NotNull String getName() {
         return toString();
     }
 
     @Override
-    public String getText() {
+    public @NotNull String getText() {
         return getFullText();
     }
 

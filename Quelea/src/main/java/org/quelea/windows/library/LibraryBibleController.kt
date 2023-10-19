@@ -52,7 +52,7 @@ class LibraryBibleController : Controller() {
     val selectedBibleProp = objectProperty<Bible>().apply {
         onChange{ new ->
             val index = _bibleBooks.indexOf(selectedBibleBook)
-            _bibleBooks.setAll(new?.booklist.orEmpty())
+            _bibleBooks.setAll(new?.bookList.orEmpty())
             selectedBibleBook = bibleBooks.getOrElse(index){
                 _bibleBooks.firstOrNull()
             }
@@ -106,7 +106,7 @@ class LibraryBibleController : Controller() {
             if (trimmedSearch.isNullOrBlank()) _filteredBibleBooks.setPredicate { true }
             else _filteredBibleBooks.setPredicate {
                 it.bookName.filter { it.isLetterOrDigit() }.startsWith(trimmedSearch, ignoreCase = true) ||
-                        it.bsName.filter { it.isLetterOrDigit() }.startsWith(trimmedSearch, ignoreCase = true)
+                        it.bSName.filter { it.isLetterOrDigit() }.startsWith(trimmedSearch, ignoreCase = true)
             }
         }
     }
@@ -133,7 +133,7 @@ class LibraryBibleController : Controller() {
 
     private fun BibleBook.matchSearch(search : String?) : Boolean{
         val trimmed = search?.javaTrim()
-        return trimmed.isNullOrEmpty() || bookName.startsWith(trimmed, ignoreCase = true) || bsName.startsWith(trimmed, ignoreCase = true)
+        return trimmed.isNullOrEmpty() || bookName.startsWith(trimmed, ignoreCase = true) || bSName.startsWith(trimmed, ignoreCase = true)
     }
     fun clearBiblebookFilter() {
         bibleBookFilterProp.set("")// = ""
@@ -244,11 +244,11 @@ class LibraryBibleController : Controller() {
             }
 
             val wholeChapters = sequenceOfRange(cVP.fromChapter+1 until cVP.toChapter)
-                .flatMap { book.getChapter(it).versesList }
+                .flatMap { book.getChapter(it)!!.versesList }
 
             val remainingVerses = if (cVP.isSingleChapter) emptySequence()
             else sequenceOfRange(0 .. cVP.toVerse)
-                .mapNotNull(book.getChapter(cVP.toChapter)::getVerse)
+                .mapNotNull(book.getChapter(cVP.toChapter)!!::getVerse)
 
             val nextChapterVerses = (wholeChapters + remainingVerses)
             verses+= nextChapterVerses
