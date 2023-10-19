@@ -69,7 +69,7 @@ class LibraryBibleController : Controller() {
 
 
     private fun updateBibles() {
-        val newBibles = BibleManager.get().biblesList
+        val newBibles = BibleManager.biblesList
         bibles.setAll(newBibles)
         selectedBible = newBibles
             .lastOrNull { it.bibleName == get().defaultBible }
@@ -77,7 +77,7 @@ class LibraryBibleController : Controller() {
     }
     init {
         updateBibles()
-        BibleManager.get().registerBibleChangeListener {
+        BibleManager.registerBibleChangeListener {
             updateBibles()
         }
     }

@@ -15,220 +15,190 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.application.Platform;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.lucene.BibleSearchIndex;
-import org.quelea.services.lucene.SearchIndex;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.StatusController;
-import org.quelea.windows.main.StatusPanel;
-import tornadofx.FX;
+import org.quelea.data.bible.Bible.Companion.parseBible
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.lucene.BibleSearchIndex
+import org.quelea.services.lucene.SearchIndex
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties
+import org.quelea.services.utils.fxRunAndWait
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.StatusController
+import org.quelea.windows.main.StatusPanel
+import tornadofx.*
+import java.util.logging.Level
+import kotlin.concurrent.thread
 
 /**
  * Loads and manages the available getBibles.
- * <p/>
+ *
+ *
  * @author Michael
  */
-public final class BibleManager {
+object BibleManager {
+    private val bibles = mutableListOf<Bible>()
+    private val listeners = mutableListOf<BibleChangeListener>()
 
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private static final BibleManager INSTANCE = new BibleManager();
-    private final List<Bible> bibles;
-    private final List<BibleChangeListener> listeners;
-    private final SearchIndex<BibleChapter> index;
-    private boolean indexInit;
-    private final List<Runnable> onIndexInit;
+    /**
+     * Get the underlying search index used by this bible manager.
+     *
+     *
+     * @return the search index.
+     */
+    val index: SearchIndex<BibleChapter> = BibleSearchIndex()
+
+    /**
+     * Determine if the search index is initialised.
+     *
+     *
+     * @return true if the index is initialised, false otherwise.
+     */
+    var isIndexInit: Boolean = false
+        private set
+    private val onIndexInit = mutableListOf<Runnable>()
 
     /**
      * Create a new bible manager.
      */
-    private BibleManager() {
-        bibles = new ArrayList<>();
-        listeners = new ArrayList<>();
-        index = new BibleSearchIndex();
-        indexInit = false;
-        onIndexInit = new ArrayList<>();
-        loadBibles(false);
-    }
-
-    /**
-     * Get the instance of this singleton class.
-     * <p/>
-     * @return the instance of this singleton class.
-     */
-    public static BibleManager get() {
-        return INSTANCE;
+    init {
+        loadBibles(false)
     }
 
     /**
      * Run the given runnable as soon as the index is initialised, or
      * immediately if the index is currently initialised.
-     * <p/>
+     *
+     *
      * @param r the runnable to run.
      */
-    public void runOnIndexInit(Runnable r) {
-        if(indexInit) {
-            r.run();
-        }
-        else {
-            onIndexInit.add(r);
+    fun runOnIndexInit(r: Runnable) {
+        if (isIndexInit) {
+            r.run()
+        } else {
+            onIndexInit.add(r)
         }
     }
 
     /**
      * Register a bible change listener on this bible manager. The listener will
      * be activated whenever a change occurs.
-     * <p/>
+     *
+     *
      * @param listener the listener to register.
      */
-    public void registerBibleChangeListener(BibleChangeListener listener) {
-        listeners.add(listener);
+    fun registerBibleChangeListener(listener: BibleChangeListener) {
+        listeners.add(listener)
     }
 
     /**
      * Notify all the listeners that a change has occurred.
      */
-    private void updateListeners() {
-        for(BibleChangeListener listener : listeners) {
-            listener.updateBibles();
-        }
-    }
+    private fun updateListeners() = listeners.forEach { it.updateBibles() }
 
     /**
      * Get all the bibles held in this manager.
-     * <p/>
+     *
+     *
      * @return all the getBibles.
      */
-    public Bible[] getBibles() {
-        return bibles.toArray(new Bible[bibles.size()]);
-    }
+    fun getBibles() = bibles.toTypedArray<Bible>()
 
-    public List<Bible> getBiblesList() {
-        return List.copyOf(bibles);
-    }
+    val biblesList: List<Bible>
+        get() = bibles.toList()
 
-    public Bible getBibleFromName(String name) {
-        for (Bible b : bibles) {
-            if (b.getName().equals(name))
-                return b;
-        }
-        return null;
-    }
+    fun getBibleFromName(name: String): Bible? =
+        bibles.firstOrNull { it.name == name }
 
-    /**
-     * Get the underlying search index used by this bible manager.
-     * <p/>
-     * @return the search index.
-     */
-    public SearchIndex<BibleChapter> getIndex() {
-        return index;
-    }
-    
     /**
      * Reload bibles and trigger listeners.
-     * <p/>
+     *
+     *
      */
-    public void refresh() {
-        loadBibles(false);
-        updateListeners();
+    fun refresh() {
+        loadBibles(false)
+        updateListeners()
     }
-    
+
     /**
      * Reload bibles, update search index and trigger listeners
-     * <p/>
+     *
+     *
      */
-    public void refreshAndLoad() {
-        loadBibles(true);
-        updateListeners();
+    fun refreshAndLoad() {
+        loadBibles(true)
+        updateListeners()
     }
 
     /**
      * Reload all the bibles from the bibles directory into this bible manager.
-     * <p/>
+     *
+     *
      * @param updateIndex update the search index with new bible structure
      */
-    public void loadBibles(boolean updateIndex) {
-        if(updateIndex) {
-            indexInit = false;
-        }
-        bibles.clear();
-        File biblesFile = QueleaProperties.get().getBibleDir();
-        if(!biblesFile.exists()) {
-            biblesFile.mkdir();
-        }
-        for(File file : biblesFile.listFiles()) {
-            if(file.getName().toLowerCase().endsWith(".xml") || file.getName().toLowerCase().endsWith(".xmm")) {
-                final Bible bible = Bible.parseBible(file);
-                if(bible != null) {
-                    bible.setFilePath(file.getAbsolutePath());
-                    bibles.add(bible);
+    fun loadBibles(updateIndex: Boolean) {
+        if (updateIndex) isIndexInit = false
+
+        bibles.clear()
+        val biblesFile = QueleaProperties.get().bibleDir
+        if (!biblesFile.exists()) biblesFile.mkdir()
+
+
+        for (file in biblesFile.listFiles()!!) {
+            if (file.extension.lowercase() == "xml" || file.extension.lowercase() == "xmm") {
+                parseBible(file)?.let { bible ->
+                    bible.filePath = file.absolutePath
+                    bibles.add(bible)
                 }
             }
         }
-        if(updateIndex) {
-            buildIndex();
-        }
-    }
-
-    /**
-     * Determine if the search index is initialised.
-     * <p/>
-     * @return true if the index is initialised, false otherwise.
-     */
-    public boolean isIndexInit() {
-        return indexInit;
+        if (updateIndex) buildIndex()
     }
 
     /**
      * Builds the search index from the current bibles.
      */
-    public void buildIndex() {
-        indexInit = false;
-        final StatusPanel[] panel = new StatusPanel[1];
-        if(QueleaApp.get().getMainWindow() != null) {
-            Utils.fxRunAndWait(() -> {
-                panel[0] = FX.find(StatusController.class).addPanel(
-                        LabelGrabber.INSTANCE.getLabel("building.bible.index")
-                );
-                panel[0].removeCancelButton();
-                panel[0].getProgressBar().setProgress(-1);
-            });
+    fun buildIndex() {
+        isIndexInit = false
+        val panel = arrayOfNulls<StatusPanel>(1)
+        if (QueleaApp.get().mainWindow != null) fxRunAndWait {
+            panel[0] = FX.find<StatusController>().addPanel(
+                LabelGrabber.INSTANCE.getLabel("building.bible.index")
+            ).apply {
+                removeCancelButton()
+                progressBar.progress = -1.0
+            }
         }
-        new Thread(() -> {
-            LOGGER.log(Level.INFO, "Adding bibles to index");
-            List<BibleChapter> chapters = new ArrayList<>(bibles.size() * 66);
-            for(Bible bible : bibles) {
-                LOGGER.log(Level.FINE, "Adding {0} bible to index", bible.getName());
-                index.clear();
-                for(BibleBook book : bible.getBooks()) {
-                    chapters.addAll(Arrays.asList(book.getChapters()));
-                }
-                LOGGER.log(Level.FINE, "Added {0}.", bible.getName());
+        thread {
+            LOGGER.log(Level.INFO, "Adding bibles to index")
+            val chapters = mutableListOf<BibleChapter>()
+            bibles.forEach { bible ->
+                LOGGER.log(Level.FINE, "Adding {0} bible to index", bible.name)
+                index.clear()
+                bible.bookList.flatMapTo(chapters) { it.chapterList }
+                LOGGER.log(Level.FINE, "Added {0}.", bible.name)
             }
-            index.addAll(chapters);
-            LOGGER.log(Level.INFO, "Finished Adding bibles to index");
-            indexInit = true;
-            for(Runnable r : onIndexInit) {
-                r.run();
-            }
-            onIndexInit.clear();
+            index.addAll(chapters)
 
-            Platform.runLater(() -> {
-                if(panel[0] != null) {
-                    panel[0].done();
-                }
-            });
-        }).start();
+            LOGGER.log(Level.INFO, "Finished Adding bibles to index")
+            isIndexInit = true
+            for (r in onIndexInit) r.run()
+            onIndexInit.clear()
+            runLater {
+                panel[0]?.done()
+            }
+        }
     }
+
+    private val LOGGER = LoggerUtils.getLogger()
+
+    /**
+     * Get the instance of this singleton class.
+     *
+     *
+     * @return the instance of this singleton class.
+     */
+    @JvmStatic
+    fun get(): BibleManager = this
 }
