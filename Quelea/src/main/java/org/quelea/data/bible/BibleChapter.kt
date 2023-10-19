@@ -47,7 +47,7 @@ class BibleChapter private constructor(
     val verses : List<BibleVerse> get() = verseMap.values.toList()
 
     init {
-        verseList.forEach { it.chapter = this }
+        verseList.forEach { it.setChapter(this) }
     }
 
     @Transient
