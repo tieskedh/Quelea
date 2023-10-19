@@ -15,102 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import org.quelea.services.utils.Utils;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.quelea.services.utils.escapeXML
+import org.quelea.utils.asSequence
+import org.w3c.dom.Node
+import java.io.Serializable
+import java.util.*
 
 /**
  * General information about a specified bible.
- *
+ * @property attributes all the attributes of this bible.
  * @author Michael
  */
-public class BibleInfo implements Serializable {
-
-    private final Map<String, String> attributes;
-
-    /**
-     * Create a new bible info object.
-     *
-     * @param title the title of the bible, eg. "King James Version"
-     */
-    public BibleInfo(String title) {
-        this();
-        attributes.put("title", title);
-        attributes.put("format", "Zefania XML Bible Markup Language");
+class BibleInfo(
+    val attributes : Map<String, String>
+) : Serializable {
+    override fun hashCode(): Int {
+        var hash = 3
+        hash = 37 * hash + attributes.hashCode()
+        return hash
     }
 
-    /**
-     * For internal use only.
-     */
-    private BibleInfo() {
-        attributes = new HashMap<>();
-    }
-
-    /**
-     * Put an attribute into the bible info object.
-     *
-     * @param attribute
-     * @param value
-     */
-    public void putAttribute(String attribute, String value) {
-        attributes.put(attribute, value);
-    }
-
-    /**
-     * Get all the attributes as name and value pairs.
-     *
-     * @return all the attributes as name and value pairs.
-     */
-    public Set<Map.Entry<String, String>> getAtributes() {
-        return attributes.entrySet();
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 37 * hash + Objects.hashCode(this.attributes);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final BibleInfo other = (BibleInfo) obj;
-        if (!Objects.equals(this.attributes, other.attributes)) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Parse some XML representing this object and return the object it
-     * represents.
-     *
-     * @param info the XML node representing this object.
-     * @return the object as defined by the XML.
-     */
-    public static BibleInfo parseXML(Node info) {
-        NodeList list = info.getChildNodes();
-        BibleInfo ret = new BibleInfo();
-        for (int i = 0; i < list.getLength(); i++) {
-            Node node = list.item(i);
-            if (!node.getNodeName().contains("#")) {
-                ret.putAttribute(node.getNodeName(), node.getTextContent());
-            }
-        }
-        return ret;
+    override fun equals(other: Any?): Boolean {
+        if (other !is BibleInfo) return false
+        return attributes == other.attributes
     }
 
     /**
@@ -118,20 +47,34 @@ public class BibleInfo implements Serializable {
      *
      * @return an XML representation of this bible info object.
      */
-    public String toXML() {
-        StringBuilder ret = new StringBuilder();
-        ret.append("<information>");
-        for (Map.Entry<String, String> attrib : getAtributes()) {
-            ret.append('<');
-            ret.append(Utils.escapeXML(attrib.getKey()));
-            ret.append('>');
-            ret.append(Utils.escapeXML(attrib.getValue()));
-            ret.append("</");
-            ret.append(Utils.escapeXML(attrib.getKey()));
-            ret.append('>');
+    fun toXML() = buildString {
+        append("<information>")
+        attributes.forEach { (key, value) ->
+            append('<')
+            append(key.escapeXML())
+            append('>')
+            append(value.escapeXML())
+            append("</")
+            append(key.escapeXML())
+            append('>')
         }
-        ret.append("</information>");
-        return ret.toString();
+        append("</information>")
     }
 
+    companion object {
+        /**
+         * Parse some XML representing this object and return the object it
+         * represents.
+         *
+         * @param info the XML node representing this object.
+         * @return the object as defined by the XML.
+         */
+        fun parseXML(info: Node): BibleInfo {
+            val attributes = info.childNodes.asSequence()
+                .filter { "#" !in it.nodeName }
+                .associate { it.nodeName to it.textContent }
+
+            return BibleInfo(attributes)
+        }
+    }
 }
