@@ -29,7 +29,6 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.quelea.data.GlobalThemeStore;
 import org.quelea.data.bible.BibleBrowseDialog;
-import org.quelea.data.bible.BibleSearchDialog;
 import org.quelea.services.utils.LoggerUtils;
 import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.SceneInfo;
@@ -59,7 +58,6 @@ public class MainWindow extends Stage {
     private final MainMenuBar menuBar;
     private final MainToolbar mainToolbar;
     private final PreferencesDialog preferencesDialog;
-    private final BibleSearchDialog bibleSearchDialog;
     private final BibleBrowseDialog bibleBrowseDialog;
     private final GlobalThemeStore globalThemeStore;
 
@@ -89,8 +87,6 @@ public class MainWindow extends Stage {
         LOGGER.log(Level.INFO, "Creating options dialog");
         preferencesDialog = new PreferencesDialog(QueleaApp.get().getClass(), hasVLC);
 
-        LOGGER.log(Level.INFO, "Creating bible search dialog");
-        bibleSearchDialog = new BibleSearchDialog();
         LOGGER.log(Level.INFO, "Creating bible browse dialog");
         bibleBrowseDialog = new BibleBrowseDialog();
         mainpanel = new MainPanel();
@@ -194,16 +190,6 @@ public class MainWindow extends Stage {
      */
     public MainMenuBar getMainMenuBar() {
         return menuBar;
-    }
-
-    /**
-     * Get the bible search dialog on this main window.
-     * <p/>
-     *
-     * @return the bible search dialog.
-     */
-    public BibleSearchDialog getBibleSearchDialog() {
-        return bibleSearchDialog;
     }
 
     /**

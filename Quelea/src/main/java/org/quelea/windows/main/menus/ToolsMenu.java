@@ -64,7 +64,7 @@ public class ToolsMenu extends Menu {
         getItems().add(viewBibleItem);
 
         searchBibleItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("search.bible.button"), new ImageView(new Image(darkTheme ? "file:icons/bible-light.png" : "file:icons/bible.png", 20, 20, false, true)));
-        searchBibleItem.setOnAction(new SearchBibleActionHandler());
+        searchBibleItem.setOnAction(SearchBibleActionHandler.INSTANCE);
         getItems().add(searchBibleItem);
 
         testItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("test.patterns.text"), new ImageView(new Image("file:icons/testbars.png", 20, 20, false, true)));

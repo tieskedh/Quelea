@@ -18,6 +18,7 @@
 package org.quelea.data.bible
 
 import javafx.scene.Node
+import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.image.Image
@@ -43,7 +44,10 @@ import kotlin.concurrent.Volatile
  *
  * @author mjrb5
  */
-class BibleSearchDialog : Stage(), BibleChangeListener {
+class BibleSearchDialog : View(
+    title = LabelGrabber.INSTANCE.getLabel("bible.search.title"),
+    icon = ImageView(Image("file:icons/search.png"))
+), BibleChangeListener {
     private lateinit var searchField: TextField
     private lateinit var searchResults: BibleSearchTreeView
     private lateinit var bibles: ComboBox<String>
@@ -51,6 +55,7 @@ class BibleSearchDialog : Stage(), BibleChangeListener {
     private val chapterVerses = observableListOf<Node>()
     private val searchResultCount = intProperty(-1)
     private val showLoading = booleanProperty(false)
+
 
     /**
      * Reset this dialog.
@@ -70,114 +75,106 @@ class BibleSearchDialog : Stage(), BibleChangeListener {
     private var lastUpdateRunnable: ExecRunnable? = null
 
 
+    override val root = borderpane {
+        top {
+            hbox {
+                paddingAll = 5
+                bibles = combobox {
+                    isEditable = false
+
+                    setOnAction {
+                        searchResults.resetRoot()
+                        update()
+                    }
+                }
+                searchField = textfield {
+                    textProperty().onChange { update() }
+                }
+
+                //add to schedule
+                button(
+                    text = LabelGrabber.INSTANCE.getLabel("add.to.schedule.text"),
+                    graphic = ImageView(Image("file:icons/tick.png"))
+                ) {
+                    action {
+                        val chap = (searchResults.selectedValue as? BibleVerse)?.parent
+                            ?: return@action
+
+                        val passage = BiblePassage(
+                            chap.parent.parent.bibleName,
+                            "${chap.book} $chap",
+                            chap.verses,
+                            false
+                        )
+                        FX.find<SchedulePanel>().scheduleList.add(passage)
+                    }
+                }
+
+                //results field
+                text(
+                    searchResultCount.stringBinding {
+                        when {
+                            it == -1 -> " " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing")
+                            it == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found") ->
+                                " 1 " + LabelGrabber.INSTANCE.getLabel("bible.search.result.found")
+
+                            else -> " $it " + LabelGrabber.INSTANCE.getLabel("bible.search.results.found")
+                        }
+                    }
+                ) {
+                    font = Font.font("Sans", 14.0)
+                    styleClass.add("text")
+                }
+            }
+        }
+
+        val chapterPane = FlowPane().apply {
+            bindChildren(chapterVerses) { it }
+        }
+
+        center {
+            splitpane {
+                setDividerPosition(0, 0.3)
+                //searchPane
+
+                stackpane {
+                    searchResults = BibleSearchTreeView(
+                        chapterTexts = chapterVerses,
+                        widthProp = chapterPane.widthProperty() - 20, //-20 to account for scroll bar width
+                        bibles = bibles.selectionModel.selectedItemProperty().stringBinding {
+                            it.takeUnless { it == LabelGrabber.INSTANCE.getLabel("all.text") }
+                        }
+                    ).attachTo(this)
+                    LoadingPane(showing = showLoading)
+                        .attachTo(this)
+                }
+
+                scrollpane {
+                    content = chapterPane
+                }
+            }
+        }
+
+        //Sizing
+        prefHeight=600.0
+        prefWidth=800.0
+    }
+
     /**
      * Create a new bible searcher dialog.
      */
     init {
-        title = LabelGrabber.INSTANCE.getLabel("bible.search.title")
-        icons.add(Image("file:icons/search.png"))
-
-
-        val mainPane = BorderPane().apply {
-            top {
-                hbox {
-                    paddingAll = 5
-                    bibles  =combobox {
-                        isEditable = false
-
-                        setOnAction {
-                            searchResults.resetRoot()
-                            update()
-                        }
-                    }
-                    searchField = textfield {
-                        textProperty().onChange { update() }
-                    }
-
-                    //add to schedule
-                    button(
-                        text=LabelGrabber.INSTANCE.getLabel("add.to.schedule.text"),
-                        graphic = ImageView(Image("file:icons/tick.png"))
-                    ){
-                        action {
-                            val chap = (searchResults.selectedValue as? BibleVerse)?.parent
-                                ?: return@action
-
-                            val passage = BiblePassage(
-                                chap.parent.parent.bibleName,
-                                "${chap.book} $chap",
-                                chap.verses,
-                                false
-                            )
-                            FX.find<SchedulePanel>().scheduleList.add(passage)
-                        }
-                    }
-
-                    //results field
-                    text(
-                        searchResultCount.stringBinding {
-                            when {
-                                it == -1 -> " " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing")
-                                it == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found") ->
-                                    " 1 " + LabelGrabber.INSTANCE.getLabel("bible.search.result.found")
-                                else -> " $it " + LabelGrabber.INSTANCE.getLabel("bible.search.results.found")
-                            }
-                        }
-                    ){
-                        font = Font.font("Sans", 14.0)
-                        styleClass.add("text")
-                    }
-                }
-            }
-
-            val chapterPane = FlowPane().apply {
-                bindChildren(chapterVerses){ it }
-            }
-
-            center {
-                splitpane {
-                    setDividerPosition(0, 0.3)
-                    //searchPane
-
-                    stackpane {
-                        searchResults = BibleSearchTreeView(
-                            chapterTexts = chapterVerses,
-                            widthProp = chapterPane.widthProperty() - 20, //-20 to account for scroll bar width
-                            bibles = bibles.selectionModel.selectedItemProperty().stringBinding {
-                                it.takeUnless { it == LabelGrabber.INSTANCE.getLabel("all.text") }
-                            }
-                        ).attachTo(this)
-                        LoadingPane(showing = showLoading)
-                            .attachTo(this)
-                    }
-
-                    scrollpane {
-                        content = chapterPane
-                    }
-                }
-            }
-        }
+        if (QueleaProperties.get().useDarkTheme)
+            importStylesheet("org/modena_dark.css")
 
         BibleManager.get().registerBibleChangeListener(this)
         updateBibles()
+    }
 
-        //Sizing
-        height=600.0
-        width=800.0
-        minHeight = 300.0
-        minWidth = 500.0
-
-        // Event handlers
-        setOnShown {
-            BibleManager.get().takeUnless { it.isIndexInit }?.refreshAndLoad()
-        }
-
-        reset()
-        val scene = Scene(mainPane)
-        if (QueleaProperties.get().useDarkTheme) {
-            scene.stylesheets.add("org/modena_dark.css")
-        }
-        setScene(scene)
+    override fun onDock() {
+        super.onDock()
+        setWindowMinSize(500, 300)
+        BibleManager.get().takeUnless { it.isIndexInit }?.refreshAndLoad()
     }
 
     private interface ExecRunnable : Runnable {

@@ -62,8 +62,7 @@ class BibleSearchTreeView(
 
     private fun trigger(t: Event, toggleCollapse : Boolean = true) {
         val tv = t.source as BibleSearchTreeView
-        val ti = tv.selectionModel.selectedItem
-        if (ti == null) {
+        val ti = tv.selectionModel.selectedItem ?: run {
             tv.selectionModelProperty().get().selectFirst()
             return
         }
