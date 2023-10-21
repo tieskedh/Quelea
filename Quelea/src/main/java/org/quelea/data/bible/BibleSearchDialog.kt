@@ -15,224 +15,229 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.event.ActionEvent;
-import javafx.geometry.Insets;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
-import org.quelea.data.displayable.BiblePassage;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.schedule.SchedulePanel;
-import org.quelea.windows.main.widgets.LoadingPane;
-import tornadofx.FX;
+import javafx.scene.Node
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.FlowPane
+import javafx.scene.text.Font
+import javafx.stage.Stage
+import org.quelea.data.displayable.BiblePassage
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties
+import org.quelea.utils.javaTrim
+import org.quelea.utils.onChangeWhile
+import org.quelea.windows.main.schedule.SchedulePanel
+import org.quelea.windows.main.widgets.LoadingPane
+import tornadofx.*
+import java.util.concurrent.Executors
+import kotlin.concurrent.Volatile
 
 /**
  * A dialog that can be used for searching for bible passages.
- * <p/>
+ *
+ *
  * @author mjrb5
  */
-public class BibleSearchDialog extends Stage implements BibleChangeListener {
+class BibleSearchDialog : Stage(), BibleChangeListener {
+    private lateinit var searchField: TextField
+    private lateinit var searchResults: BibleSearchTreeView
+    private lateinit var bibles: ComboBox<String>
 
-    private TextField searchField;
-    private BibleSearchTreeView searchResults;
-    private ComboBox<String> bibles;
-    private ScrollPane scrollPane;
-    private LoadingPane overlay;
-    private FlowPane chapterPane;
-    private final Button addToSchedule;
-    private final Text resultsField;
-
-    /**
-     * Create a new bible searcher dialog.
-     */
-    public BibleSearchDialog() {
-        BorderPane mainPane = new BorderPane();
-        setTitle(LabelGrabber.INSTANCE.getLabel("bible.search.title"));
-        getIcons().add(new Image("file:icons/search.png"));
-
-        overlay = new LoadingPane();
-        searchField = new TextField();
-        bibles = new ComboBox<>();
-        bibles.setEditable(false);
-        chapterPane = new FlowPane();
-        scrollPane = new ScrollPane();
-        scrollPane.setContent(chapterPane);
-        searchResults = new BibleSearchTreeView(scrollPane, bibles);
-        resultsField = new Text(" " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing"));
-        resultsField.setFont(Font.font("Sans", 14));
-        resultsField.getStyleClass().add("text");
-        addToSchedule = new Button(LabelGrabber.INSTANCE.getLabel("add.to.schedule.text"), new ImageView(new Image("file:icons/tick.png")));
-
-        BibleManager.get().registerBibleChangeListener(this);
-        updateBibles();
-
-        //top panel
-        HBox northPanel = new HBox();
-        northPanel.setPadding(new Insets(5, 5, 5, 5));
-        northPanel.getChildren().addAll(bibles, searchField, addToSchedule, resultsField);
-        mainPane.setTop(northPanel);
-
-        //center panel
-        StackPane searchPane = new StackPane();
-        searchPane.getChildren().addAll(searchResults, overlay);
-
-        SplitPane centerPanel = new SplitPane();
-        centerPanel.setDividerPosition(0, 0.3);
-        centerPanel.getItems().addAll(searchPane, scrollPane);
-        mainPane.setCenter(centerPanel);
-
-        //Sizing
-        this.setHeight(600);
-        this.setWidth(800);
-        this.setMinHeight(300);
-        this.setMinWidth(500);
-
-        // Event handlers
-        bibles.setOnAction((javafx.event.ActionEvent t) -> {
-            searchResults.resetRoot();
-            update();
-        });
-        searchField.textProperty().addListener((ObservableValue<? extends String> ov, String t, String t1) -> {
-            update();
-        });
-        addToSchedule.setOnAction((ActionEvent t) -> {
-            if (searchResults.getSelectionModel().getSelectedItem().getValue() instanceof BibleVerse) {
-                BibleChapter chap = (BibleChapter) searchResults.getSelectionModel().getSelectedItem().getValue().getParent();
-                Bible bib = (Bible) chap.getParent().getParent();
-                BiblePassage passage = new BiblePassage(bib.getBibleName(), chap.getBook() + " " + chap.toString(), chap.getVerses(), false);
-                FX.find(SchedulePanel.class).getScheduleList().add(passage);
-            }
-        });
-        setOnShown((WindowEvent event) -> {
-            if (!BibleManager.get().isIndexInit()) {
-                BibleManager.get().refreshAndLoad();
-            }
-        });
-
-        reset();
-        Scene scene = new Scene(mainPane);
-        if (QueleaProperties.get().getUseDarkTheme()) {
-            scene.getStylesheets().add("org/modena_dark.css");
-        }
-        setScene(scene);
-    }
+    private val chapterVerses = observableListOf<Node>()
+    private val searchResultCount = intProperty(-1)
+    private val showLoading = booleanProperty(false)
 
     /**
      * Reset this dialog.
      */
-    public final void reset() {
+    fun reset() {
 //        searchResults.itemsProperty().get().clear();
-        searchField.setText(LabelGrabber.INSTANCE.getLabel("initial.search.text"));
-        searchField.focusedProperty().addListener(new ChangeListener<Boolean>() {
-            @Override
-            public void changed(ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) {
-                if (t1) {
-                    searchField.setText("");
-                    searchField.focusedProperty().removeListener(this);
-                }
-            }
-        });
-        searchField.setDisable(true);
-        BibleManager.get().runOnIndexInit(() -> {
-            searchField.setDisable(false);
-        });
+        searchField.text = LabelGrabber.INSTANCE.getLabel("initial.search.text")
+        searchField.focusedProperty().onChangeWhile { isFocussed ->
+            if (isFocussed) searchField.text = ""
+            !isFocussed
+        }
+        searchField.isDisable = true
+        BibleManager.get().runOnIndexInit { searchField.isDisable = false }
     }
 
-    private ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
-    private ExecRunnable lastUpdateRunnable = null;
+    private val updateExecutor = Executors.newSingleThreadExecutor()
+    private var lastUpdateRunnable: ExecRunnable? = null
 
-    private interface ExecRunnable extends Runnable {
 
-        void cancel();
+    /**
+     * Create a new bible searcher dialog.
+     */
+    init {
+        title = LabelGrabber.INSTANCE.getLabel("bible.search.title")
+        icons.add(Image("file:icons/search.png"))
+
+
+        val mainPane = BorderPane().apply {
+            top {
+                hbox {
+                    paddingAll = 5
+                    bibles  =combobox {
+                        isEditable = false
+
+                        setOnAction {
+                            searchResults.resetRoot()
+                            update()
+                        }
+                    }
+                    searchField = textfield {
+                        textProperty().onChange { update() }
+                    }
+
+                    //add to schedule
+                    button(
+                        text=LabelGrabber.INSTANCE.getLabel("add.to.schedule.text"),
+                        graphic = ImageView(Image("file:icons/tick.png"))
+                    ){
+                        action {
+                            val chap = (searchResults.selectedValue as? BibleVerse)?.parent
+                                ?: return@action
+
+                            val passage = BiblePassage(
+                                chap.parent.parent.bibleName,
+                                "${chap.book} $chap",
+                                chap.verses,
+                                false
+                            )
+                            FX.find<SchedulePanel>().scheduleList.add(passage)
+                        }
+                    }
+
+                    //results field
+                    text(
+                        searchResultCount.stringBinding {
+                            when {
+                                it == -1 -> " " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing")
+                                it == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found") ->
+                                    " 1 " + LabelGrabber.INSTANCE.getLabel("bible.search.result.found")
+                                else -> " $it " + LabelGrabber.INSTANCE.getLabel("bible.search.results.found")
+                            }
+                        }
+                    ){
+                        font = Font.font("Sans", 14.0)
+                        styleClass.add("text")
+                    }
+                }
+            }
+
+            val chapterPane = FlowPane().apply {
+                bindChildren(chapterVerses){ it }
+            }
+
+            center {
+                splitpane {
+                    setDividerPosition(0, 0.3)
+                    //searchPane
+
+                    stackpane {
+                        searchResults = BibleSearchTreeView(
+                            chapterTexts = chapterVerses,
+                            widthProp = chapterPane.widthProperty() - 20, //-20 to account for scroll bar width
+                            bibles = bibles.selectionModel.selectedItemProperty().stringBinding {
+                                it.takeUnless { it == LabelGrabber.INSTANCE.getLabel("all.text") }
+                            }
+                        ).attachTo(this)
+                        LoadingPane(showing = showLoading)
+                            .attachTo(this)
+                    }
+
+                    scrollpane {
+                        content = chapterPane
+                    }
+                }
+            }
+        }
+
+        BibleManager.get().registerBibleChangeListener(this)
+        updateBibles()
+
+        //Sizing
+        height=600.0
+        width=800.0
+        minHeight = 300.0
+        minWidth = 500.0
+
+        // Event handlers
+        setOnShown {
+            BibleManager.get().takeUnless { it.isIndexInit }?.refreshAndLoad()
+        }
+
+        reset()
+        val scene = Scene(mainPane)
+        if (QueleaProperties.get().useDarkTheme) {
+            scene.stylesheets.add("org/modena_dark.css")
+        }
+        setScene(scene)
+    }
+
+    private interface ExecRunnable : Runnable {
+        fun cancel()
     }
 
     /**
      * Update the results based on the entered text.
      */
-    private void update() {
-        final String text = searchField.getText();
-        if (text.length() > 3) {
-            if (BibleManager.get().isIndexInit()) {
-                searchResults.reset();
-                overlay.show();
-                ExecRunnable execRunnable = new ExecRunnable() {
-                    private volatile boolean cancel = false;
-
-                    public void cancel() {
-                        cancel = true;
+    private fun update() {
+        val text = searchField.text
+        if (text.length > 3) {
+            if (BibleManager.get().isIndexInit) {
+                searchResults.reset()
+                showLoading.value = true
+                val execRunnable: ExecRunnable = object : ExecRunnable {
+                    @Volatile
+                    private var cancel = false
+                    override fun cancel() {
+                        cancel = true
                     }
 
-                    public void run() {
-                        if (cancel) {
-                            return;
+                    override fun run() {
+                        if (cancel) return
+
+                        val results = BibleManager.get().index.filter(text, null)
+                        runLater {
+                            val filteredVerses =  if (text.javaTrim().isNotEmpty()) {
+                                results.asSequence().filter { chapter ->
+                                    bibles.selectionModel.selectedIndex == 0 ||
+                                            chapter.book.bible.name == bibles.selectedItem
+                                }.flatMap { it.verses }
+                                    .filter { it.text.contains(text, ignoreCase = true) }
+                            } else { sequenceOf() }
+
+                            searchResults.setFiltered(filteredVerses)
+                            showLoading.value = false
+                            searchResultCount.set(searchResults.size())
                         }
-                        final BibleChapter[] results = BibleManager.get().getIndex().filter(text, null);
-                        Platform.runLater(() -> {
-                            searchResults.reset();
-                            if (!text.trim().isEmpty()) {
-                                for (BibleChapter chapter : results) {
-                                    if (bibles.getSelectionModel().getSelectedIndex() == 0 || chapter.getBook().getBible().getName().equals(bibles.getSelectionModel().getSelectedItem())) {
-                                        for (BibleVerse verse : chapter.getVerses()) {
-                                            if (verse.getText().toLowerCase().contains(text.toLowerCase())) {
-                                                searchResults.add(verse);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            overlay.hide();
-                            String resultsfoundSuffix = LabelGrabber.INSTANCE.getLabel("bible.search.results.found");
-                            if (searchResults.size() == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found")) {
-                                resultsfoundSuffix = LabelGrabber.INSTANCE.getLabel("bible.search.result.found");
-                            }
-                            resultsField.setText(" " + searchResults.size() + " " + resultsfoundSuffix);
-                        });
                     }
-                };
-                if (lastUpdateRunnable != null) {
-                    lastUpdateRunnable.cancel();
                 }
-                lastUpdateRunnable = execRunnable;
-                updateExecutor.submit(execRunnable);
+                lastUpdateRunnable?.cancel()
+                lastUpdateRunnable = execRunnable
+                updateExecutor.submit(execRunnable)
             }
         }
-        searchResults.reset();
-        resultsField.setText(" " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing"));
-        chapterPane.getChildren().clear();
+        searchResults.reset()
+        searchResultCount.set(-1)
+        chapterVerses.clear()
     }
 
     /**
      * Update the list of bibles on this search dialog.
      */
-    @Override
-    public final void updateBibles() {
-        bibles.itemsProperty().get().clear();
-        bibles.itemsProperty().get().add(LabelGrabber.INSTANCE.getLabel("all.text"));
-        for (Bible bible : BibleManager.get().getBibles()) {
-            bibles.itemsProperty().get().add(bible.getName());
+    override fun updateBibles() {
+        bibles.itemsProperty().get().also { items->
+            items.clear()
+            items += LabelGrabber.INSTANCE.getLabel("all.text")
+            BibleManager.get().getBibles().mapTo(items) { it.name }
         }
-        bibles.getSelectionModel().selectFirst();
+        bibles.selectionModel.selectFirst()
     }
 }

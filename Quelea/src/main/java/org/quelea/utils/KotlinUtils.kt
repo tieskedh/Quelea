@@ -1,6 +1,9 @@
 package org.quelea.utils
 
 import javafx.beans.property.ReadOnlyListWrapper
+import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableBooleanValue
+import javafx.beans.value.ObservableValue
 import javafx.collections.ObservableList
 import javafx.event.EventTarget
 import javafx.scene.control.ToggleButton
@@ -33,3 +36,12 @@ operator fun NodeList.iterator() = iterator<Node> {
 fun NodeList.asSequence() = iterator().asSequence()
 fun Node.nameMatchesAny(vararg names: String) = names.any { it.equals(nodeName, ignoreCase = true) }
 infix fun Node.nameMatches(name : String) = name.equals(nodeName, ignoreCase = true)
+
+inline fun ObservableBooleanValue.onChangeWhile(
+    crossinline op : (Boolean) -> Boolean
+) = addListener(object : ChangeListener<Boolean> {
+    override fun changed(ov: ObservableValue<out Boolean>?, t: Boolean?, t1: Boolean?) {
+        val retain = op(t1 == true)
+        if (!retain) removeListener(this)
+    }
+})

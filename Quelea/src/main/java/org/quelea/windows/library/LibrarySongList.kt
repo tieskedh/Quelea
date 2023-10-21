@@ -76,11 +76,10 @@ class LibrarySongList : View() {
             }
             show()
         }
-        loadingOverlay = LoadingPane(controller.loadingProperty).attachTo(this){
-            controller.showLoading.onChange {
-                if (it) show() else hide()
-            }
-        }
+        loadingOverlay = LoadingPane(
+            progressProp = controller.loadingProperty,
+            showing = controller.showLoading
+        ).attachTo(this)
 
 
 

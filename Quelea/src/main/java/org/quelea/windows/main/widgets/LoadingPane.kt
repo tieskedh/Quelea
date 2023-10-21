@@ -20,7 +20,9 @@ package org.quelea.windows.main.widgets
 
 import javafx.animation.FadeTransition
 import javafx.animation.Transition
+import javafx.beans.property.BooleanProperty
 import javafx.beans.property.DoubleProperty
+import javafx.beans.value.ObservableBooleanValue
 import javafx.geometry.Pos
 import javafx.scene.control.ProgressBar
 import javafx.scene.layout.StackPane
@@ -35,12 +37,11 @@ import tornadofx.*
  */
 
 class LoadingPane @JvmOverloads constructor(
-    private val progressProp: DoubleProperty = doubleProperty()
+    private val progressProp: DoubleProperty = doubleProperty(),
+    showing : ObservableBooleanValue = booleanProperty(false)
 ) : StackPane() {
     private var trans: FadeTransition? = null
     private lateinit var bar: ProgressBar
-    var progress : Double by progressProp
-
 
     /**
      * Create the loading pane.
@@ -49,8 +50,7 @@ class LoadingPane @JvmOverloads constructor(
         alignment = Pos.CENTER
         opacity = 0.0
         style = "-fx-background-color: #555555;"
-        isVisible = false
-
+        isVisible = showing.value
         vbox {
             alignment = Pos.CENTER
 
@@ -66,13 +66,17 @@ class LoadingPane @JvmOverloads constructor(
             }
             bar = progressbar(progressProp)
         }
+        showing.onChange {
+            if (it) show() else hide()
+        }
+
     }
 
     /**
      * Show (fade in) the loading pane.
      */
     @Synchronized
-    fun show() {
+    private fun show() {
         isVisible = true
         progressProp.set(-1.0)
         trans?.stop()
@@ -86,7 +90,7 @@ class LoadingPane @JvmOverloads constructor(
      * Hide (fade out) the loading pane.
      */
     @Synchronized
-    fun hide() {
+    private fun hide() {
         isVisible = false
         trans?.stop()
 

@@ -120,7 +120,7 @@ class BibleChapter private constructor(
             verses.joinToString(" ")
                 .also { softRefText = SoftReference(it) }
         }
-    override val parent: BibleInterface?
+    override val parent: BibleBook
         get() = book
 
     companion object {

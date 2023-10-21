@@ -96,7 +96,7 @@ class BibleVerse private constructor(
     override val text = verseText
     override val name = "$num $verseText"
 
-    override val parent: BibleInterface
+    override val parent: BibleChapter
         get() = chapter
 
     companion object {

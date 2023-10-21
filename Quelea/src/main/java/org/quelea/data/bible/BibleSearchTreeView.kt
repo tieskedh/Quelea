@@ -15,168 +15,154 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.data.bible;
+package org.quelea.data.bible
 
-import java.util.Collection;
-import java.util.List;
-
-import javafx.event.Event;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SelectionMode;
-import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
+import javafx.beans.value.ObservableDoubleValue
+import javafx.beans.value.ObservableValue
+import javafx.collections.ObservableList
+import javafx.event.Event
+import javafx.scene.Node
+import javafx.scene.control.SelectionMode
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeView
+import javafx.scene.input.KeyCode
+import javafx.scene.text.Font
+import javafx.scene.text.FontWeight
+import tornadofx.*
 
 /**
  * The TreeView responsible for showing search results in a TreeView model
  *
+ * @constructor Constructs a TreeView object with a blank root BibleInterface item.
+ * @param chapterTexts the pane that will hold the verses
+ * @param bibles the combobox of bibles to filter with.
  * @author Ben
  */
-public class BibleSearchTreeView extends TreeView<BibleInterface> {
-
-    private TreeItem<BibleInterface> root;
-    private FlowPane textPane;
-    private ScrollPane sp;
-    private ComboBox bibles;
-    private boolean all = true;
-    private int size;
-
-    /**
-     * Constructs a TreeView object with a blank root BibleInterface item.
-     * <p/>
-     * @param chapterPane the scroll pane that will display the verse selected
-     * @param bibles the combobox of bibles to filter with.
-     */
-    public BibleSearchTreeView(ScrollPane chapterPane, ComboBox bibles) {
-        this.bibles = bibles;
-        setRoot(new TreeItem<BibleInterface>());
-        root = getRoot();
-        root.setExpanded(true);
-        this.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        sp = chapterPane;
-        textPane = (FlowPane) sp.getContent();
-        this.setOnKeyTyped(t -> {
-            if (t.getCode() == KeyCode.RIGHT) {
-                trigger(t);
-            }
-        });
-        this.setOnMouseClicked(this::trigger);
+class BibleSearchTreeView(
+    private val chapterTexts: ObservableList<Node>,
+    private val widthProp : ObservableDoubleValue,
+    private val bibles: ObservableValue<String>
+) : TreeView<BibleInterface?>() {
+    private var rootItem = TreeItem<BibleInterface?>().also {
+        root = it
+        it.isExpanded = true
     }
 
-    private void trigger(Event t) {
-        BibleSearchTreeView tv = (BibleSearchTreeView) t.getSource();
-        TreeItem<BibleInterface> ti = tv.getSelectionModel().getSelectedItem();
-        if (ti != null) {
-            if (ti.getValue() instanceof BibleVerse) {
-                textPane.getChildren().clear();
-                BibleChapter chapter = (BibleChapter) ti.getValue().getParent();
-                List<BibleVerse> verses = chapter.getVerses();
-                BibleVerse selected = (BibleVerse) ti.getValue();
+    private var isBibleFiltered = true
+    private var size = 0
 
-                int x = selected.getNum() - 1;
-                for (int i = 0; i < verses.size(); i++) {
-                    Text text = new Text(verses.get(i).toString() + " ");
-                    text.getStyleClass().add("text");
-                    if (i == x) {
-                        text.setFont(Font.font("Sans", FontWeight.BOLD, 14));
-                    } else {
-                        text.setFont(Font.font("Sans", 14));
-                    }
-                    textPane.getChildren().add(text);
-                    text.wrappingWidthProperty().bind(sp.widthProperty().subtract(20)); //-20 to account for scroll bar width
-                }
-            } else {
-                ti.setExpanded(!ti.isExpanded());
+    init {
+        selectionModel.selectionMode = SelectionMode.SINGLE
+        setOnKeyReleased {
+            if (it.code == KeyCode.RIGHT)
+                trigger(it, false)
+        }
+        this.setOnMouseClicked(::trigger)
+    }
+
+    private fun trigger(t: Event, toggleCollapse : Boolean = true) {
+        val tv = t.source as BibleSearchTreeView
+        val ti = tv.selectionModel.selectedItem
+        if (ti == null) {
+            tv.selectionModelProperty().get().selectFirst()
+            return
+        }
+
+        val selectedVerse = ti.value as? BibleVerse ?: run {
+            if (toggleCollapse) ti.isExpanded = !ti.isExpanded
+            return
+        }
+
+        val x = selectedVerse.num - 1
+        val chapterVerses = selectedVerse.parent.verses
+        chapterTexts.clear()
+        chapterVerses.mapIndexedTo(chapterTexts) { index, bibleVerse ->
+            text("$bibleVerse ") {
+                styleClass.add("text")
+                font = Font.font(
+                    "Sans",
+                    if (index == x) FontWeight.BOLD else null,
+                    14.0
+                )
+
+                wrappingWidthProperty().bind(widthProp)
             }
-        } else {
-            tv.selectionModelProperty().get().selectFirst();
         }
     }
 
     /**
      * Resets the root and expands it.
-     * <p/>
+     *
+     *
      */
-    public void reset() {
-        this.setShowRoot(false);
-        resetRoot();
-        root.setExpanded(true);
+    fun reset() {
+        this.isShowRoot = false
+        resetRoot()
+        rootItem.isExpanded = true
     }
 
     /**
      * Adds the filtered results into the treeview. Sorts them from the verse's
      * parents
-     * <p/>
+     *
+     *
      * @param verse The bible verse to add into the tree.
      */
-    public void add(BibleVerse verse) {
-        BibleChapter chapter = (BibleChapter) verse.getParent();
-        BibleBook book = (BibleBook) chapter.getParent();
-        Bible bible = (Bible) book.getParent();
+    fun add(verse: BibleVerse) {
+        val chapter = verse.parent
+        val book = chapter.parent
 
         // Get the current bible
-        TreeItem<BibleInterface> cbible;
-        if (all) {
-            cbible = existsOrCreateInt(root.getChildren(), bible);
-        } else {
-            cbible = root;
+        val cbible = when {
+            isBibleFiltered -> rootItem.children.getOrPutItem(book.parent)
+            else -> rootItem
         }
 
         // Get the current book
-        TreeItem<BibleInterface> cbook = existsOrCreateInt(cbible.getChildren(), book);
+        val cbook = cbible.children.getOrPutItem(book)
 
         //Get the current chapter.
-        TreeItem<BibleInterface> cchapter = existsOrCreateInt(cbook.getChildren(), chapter);
+        val cchapter = cbook.children.getOrPutItem(chapter)
 
         //See if verse is in results, or add it.
-        TreeItem<BibleInterface> cverse = new TreeItem<BibleInterface>(verse);
-        if (!cchapter.getChildren().contains(cverse)) {
-            cchapter.getChildren().add(cverse);
-            size++;
+        val cverse = TreeItem<BibleInterface?>(verse)
+        if (cverse !in cchapter.children) {
+            cchapter.children += cverse
+            size++
         }
     }
 
-    public int size() {
-        return size;
-    }
+    fun size(): Int = size
+
     /**
      * Checks if the bible section is already listed in the current tree
      */
-    private TreeItem<BibleInterface> existsOrCreateInt(Collection<TreeItem<BibleInterface>> coll, BibleInterface toFind) {
-        for (TreeItem<BibleInterface> i : coll) {
-            if (i.getValue().getName().equals(toFind.getName())) {
-                return i;
-            }
-        }
-        TreeItem<BibleInterface> temp = new TreeItem<>(toFind);
-        coll.add(temp);
-        return temp;
-    }
+    private fun MutableCollection<TreeItem<BibleInterface?>>.getOrPutItem(
+        toFind: BibleInterface
+    ): TreeItem<BibleInterface?> = find { it.value!!.name == toFind.name }
+        ?: TreeItem(toFind).also { add(it) }
 
     /**
      * Resets the root based on the current selected index of the combobox. If
      * all, a blank root is created, if a bible is selected it becomes the root
      */
-    public void resetRoot() {
-        if (bibles.getSelectionModel().getSelectedIndex() != 0) {
-            String bib = (String) bibles.getSelectionModel().getSelectedItem();
-            for (Bible b : BibleManager.get().getBibles()) {
-                if (b.getName().equals(bib)) {
-                    setRoot(new TreeItem<BibleInterface>(b));
-                    all = false;
-                }
-            }
+    fun resetRoot() {
+        val bib = bibles.value
+        if (bib != null) BibleManager.biblesList.find { it.name == bib }?.let {
+            root = TreeItem(it)
+            isBibleFiltered = false
         } else {
-            setRoot(new TreeItem<BibleInterface>());
-            all = true;
+            root = TreeItem()
+            isBibleFiltered = true
         }
-        root = getRoot();
-        size = 0;
-        this.setShowRoot(false);
+        rootItem = root
+        size = 0
+        this.isShowRoot = false
+    }
+
+    fun setFiltered(filteredVerses: Sequence<BibleVerse>) {
+        reset()
+        val verseList = filteredVerses.toList()
+        verseList.forEach { add(it) }
     }
 }
