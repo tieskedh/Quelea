@@ -17,26 +17,17 @@
  */
 package org.quelea.data.bible
 
-import javafx.scene.Node
-import javafx.scene.Parent
-import javafx.scene.Scene
-import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.FlowPane
 import javafx.scene.text.Font
-import javafx.stage.Stage
+import javafx.scene.text.FontWeight
+import javafx.scene.text.Text
 import org.quelea.data.displayable.BiblePassage
 import org.quelea.services.languages.LabelGrabber
 import org.quelea.services.utils.QueleaProperties
-import org.quelea.utils.javaTrim
-import org.quelea.utils.onChangeWhile
 import org.quelea.windows.main.schedule.SchedulePanel
 import org.quelea.windows.main.widgets.LoadingPane
 import tornadofx.*
-import java.util.concurrent.Executors
-import kotlin.concurrent.Volatile
 
 /**
  * A dialog that can be used for searching for bible passages.
@@ -47,48 +38,29 @@ import kotlin.concurrent.Volatile
 class BibleSearchDialog : View(
     title = LabelGrabber.INSTANCE.getLabel("bible.search.title"),
     icon = ImageView(Image("file:icons/search.png"))
-), BibleChangeListener {
-    private lateinit var searchField: TextField
+) {
     private lateinit var searchResults: BibleSearchTreeView
-    private lateinit var bibles: ComboBox<String>
 
-    private val chapterVerses = observableListOf<Node>()
-    private val searchResultCount = intProperty(-1)
-    private val showLoading = booleanProperty(false)
-
-
-    /**
-     * Reset this dialog.
-     */
-    fun reset() {
-//        searchResults.itemsProperty().get().clear();
-        searchField.text = LabelGrabber.INSTANCE.getLabel("initial.search.text")
-        searchField.focusedProperty().onChangeWhile { isFocussed ->
-            if (isFocussed) searchField.text = ""
-            !isFocussed
-        }
-        searchField.isDisable = true
-        BibleManager.get().runOnIndexInit { searchField.isDisable = false }
-    }
-
-    private val updateExecutor = Executors.newSingleThreadExecutor()
-    private var lastUpdateRunnable: ExecRunnable? = null
-
+    private val controller = find<BibleSearchController>()
 
     override val root = borderpane {
         top {
             hbox {
                 paddingAll = 5
-                bibles = combobox {
+                combobox(
+                    property = controller.bibleFilterProp,
+                    values = controller.bibleList
+                ) {
                     isEditable = false
 
                     setOnAction {
                         searchResults.resetRoot()
-                        update()
+                        controller.update()
                     }
                 }
-                searchField = textfield {
-                    textProperty().onChange { update() }
+                textfield(controller.searchTextProp) {
+                    promptText = LabelGrabber.INSTANCE.getLabel("initial.search.text")
+                    disableWhen(controller.cannotSearch)
                 }
 
                 //add to schedule
@@ -112,7 +84,7 @@ class BibleSearchDialog : View(
 
                 //results field
                 text(
-                    searchResultCount.stringBinding {
+                    controller.searchResultCount.stringBinding {
                         when {
                             it == -1 -> " " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing")
                             it == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found") ->
@@ -128,29 +100,33 @@ class BibleSearchDialog : View(
             }
         }
 
-        val chapterPane = FlowPane().apply {
-            bindChildren(chapterVerses) { it }
-        }
-
         center {
             splitpane {
                 setDividerPosition(0, 0.3)
                 //searchPane
 
                 stackpane {
-                    searchResults = BibleSearchTreeView(
-                        chapterTexts = chapterVerses,
-                        widthProp = chapterPane.widthProperty() - 20, //-20 to account for scroll bar width
-                        bibles = bibles.selectionModel.selectedItemProperty().stringBinding {
-                            it.takeUnless { it == LabelGrabber.INSTANCE.getLabel("all.text") }
-                        }
-                    ).attachTo(this)
-                    LoadingPane(showing = showLoading)
+                    searchResults = BibleSearchTreeView()
+                        .attachTo(this)
+                    LoadingPane(showing = controller.showLoading)
                         .attachTo(this)
                 }
 
                 scrollpane {
-                    content = chapterPane
+                    val textWidth = this.widthProperty() - 20 // -20 to account for scroll bar width
+                    flowpane {
+                        bindChildren(controller.versesOfCurrentChapter) {
+                            Text("${it.text} ").apply {
+                                styleClass.add("text")
+                                font = Font.font(
+                                    "Sans",
+                                    if (it.isSelected) FontWeight.BOLD else null,
+                                    14.0
+                                )
+                                wrappingWidthProperty().bind(textWidth)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -167,74 +143,14 @@ class BibleSearchDialog : View(
         if (QueleaProperties.get().useDarkTheme)
             importStylesheet("org/modena_dark.css")
 
-        BibleManager.get().registerBibleChangeListener(this)
-        updateBibles()
+        subscribe<ResetAndExpandRoot> {
+            searchResults.reset()
+        }
     }
 
     override fun onDock() {
         super.onDock()
         setWindowMinSize(500, 300)
-        BibleManager.get().takeUnless { it.isIndexInit }?.refreshAndLoad()
-    }
-
-    private interface ExecRunnable : Runnable {
-        fun cancel()
-    }
-
-    /**
-     * Update the results based on the entered text.
-     */
-    private fun update() {
-        val text = searchField.text
-        if (text.length > 3) {
-            if (BibleManager.get().isIndexInit) {
-                searchResults.reset()
-                showLoading.value = true
-                val execRunnable: ExecRunnable = object : ExecRunnable {
-                    @Volatile
-                    private var cancel = false
-                    override fun cancel() {
-                        cancel = true
-                    }
-
-                    override fun run() {
-                        if (cancel) return
-
-                        val results = BibleManager.get().index.filter(text, null)
-                        runLater {
-                            val filteredVerses =  if (text.javaTrim().isNotEmpty()) {
-                                results.asSequence().filter { chapter ->
-                                    bibles.selectionModel.selectedIndex == 0 ||
-                                            chapter.book.bible.name == bibles.selectedItem
-                                }.flatMap { it.verses }
-                                    .filter { it.text.contains(text, ignoreCase = true) }
-                            } else { sequenceOf() }
-
-                            searchResults.setFiltered(filteredVerses)
-                            showLoading.value = false
-                            searchResultCount.set(searchResults.size())
-                        }
-                    }
-                }
-                lastUpdateRunnable?.cancel()
-                lastUpdateRunnable = execRunnable
-                updateExecutor.submit(execRunnable)
-            }
-        }
-        searchResults.reset()
-        searchResultCount.set(-1)
-        chapterVerses.clear()
-    }
-
-    /**
-     * Update the list of bibles on this search dialog.
-     */
-    override fun updateBibles() {
-        bibles.itemsProperty().get().also { items->
-            items.clear()
-            items += LabelGrabber.INSTANCE.getLabel("all.text")
-            BibleManager.get().getBibles().mapTo(items) { it.name }
-        }
-        bibles.selectionModel.selectFirst()
+        BibleManager.takeUnless { it.isIndexInit }?.refreshAndLoad()
     }
 }

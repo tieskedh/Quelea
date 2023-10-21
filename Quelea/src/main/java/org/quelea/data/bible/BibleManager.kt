@@ -88,9 +88,22 @@ object BibleManager {
      *
      * @param listener the listener to register.
      */
+    fun registerBibleChangeListener(invokeImmediately: Boolean, listener: BibleChangeListener) {
+        if (invokeImmediately) listener.updateBibles()
+        listeners.add(listener)
+    }
+
+    /**
+     * Register a bible change listener on this bible manager. The listener will
+     * be activated whenever a change occurs.
+     *
+     *
+     * @param listener the listener to register.
+     */
     fun registerBibleChangeListener(listener: BibleChangeListener) {
         listeners.add(listener)
     }
+
 
     /**
      * Notify all the listeners that a change has occurred.
