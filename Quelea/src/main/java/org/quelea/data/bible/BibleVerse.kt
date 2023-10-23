@@ -29,7 +29,7 @@ import java.io.Serializable
  * @property verseText the textual content of the verse.
  * @author Michael
  */
-class BibleVerse private constructor(
+class BibleVerse constructor(
     override val num: Int,
     val verseText: String,
     var chapterNum : Int,

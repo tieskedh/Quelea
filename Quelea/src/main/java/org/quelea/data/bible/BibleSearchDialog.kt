@@ -54,7 +54,7 @@ class BibleSearchDialog : View(
                     isEditable = false
 
                     setOnAction {
-                        searchResults.resetRoot()
+//                        searchResults.reset()
                         controller.update()
                     }
                 }
@@ -144,7 +144,7 @@ class BibleSearchDialog : View(
             importStylesheet("org/modena_dark.css")
 
         subscribe<ResetAndExpandRoot> {
-            searchResults.reset()
+//            searchResults.reset()
         }
     }
 

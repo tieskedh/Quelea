@@ -31,13 +31,7 @@ import tornadofx.*
  * @author Ben
  */
 class BibleSearchTreeView : TreeView<BibleInterface?>() {
-    private var rootItem = TreeItem<BibleInterface?>().also {
-        root = it
-        it.isExpanded = true
-    }
-
     val controller = find<BibleSearchController>()
-
 
     init {
         selectionModel.selectionMode = SelectionMode.SINGLE
@@ -47,9 +41,21 @@ class BibleSearchTreeView : TreeView<BibleInterface?>() {
         }
         this.setOnMouseClicked(::trigger)
 
-        controller.filteredVerses.onChange {
-            reset()
-            it.list.forEach { add(it) }
+        cellFormat {
+            text = it?.name ?: "IT IS NULL!"
+        }
+
+        root = TreeItem(null)
+        isShowRoot = false
+        populateTree(root, { TreeItem(it) }){
+            when(val value = it.value) {
+                is BibleVerse -> null
+                is BibleChapter -> controller.bibleChapToVerse[value]
+                is BibleBook -> controller.bibleBookToChap[value]
+                is Bible -> controller.bibleVersionToBook[value]
+                null -> controller.treeRootElements
+                else -> null
+            }
         }
     }
 
@@ -65,80 +71,6 @@ class BibleSearchTreeView : TreeView<BibleInterface?>() {
             return
         }
 
-        val x = selectedVerse.num - 1
-        val chapterVerses = selectedVerse.parent.verses
-        controller.versesOfCurrentChapter.clear()
-        chapterVerses.mapIndexedTo(controller.versesOfCurrentChapter) { index, bibleVerse ->
-            VerseText(
-                text="$bibleVerse ",
-                isSelected = index == x
-            )
-        }
-    }
-
-    /**
-     * Resets the root and expands it.
-     *
-     *
-     */
-    fun reset() {
-        this.isShowRoot = false
-        resetRoot()
-        rootItem.isExpanded = true
-    }
-
-    /**
-     * Adds the filtered results into the treeview. Sorts them from the verse's
-     * parents
-     *
-     *
-     * @param verse The bible verse to add into the tree.
-     */
-    fun add(verse: BibleVerse) {
-        val chapter = verse.parent
-        val book = chapter.parent
-
-        // Get the current bible
-        val cbible = when {
-            !controller.isBibleSelected -> rootItem.children.getOrPutItem(book.parent)
-            else -> rootItem
-        }
-
-        // Get the current book
-        val cbook = cbible.children.getOrPutItem(book)
-
-        //Get the current chapter.
-        val cchapter = cbook.children.getOrPutItem(chapter)
-
-        //See if verse is in results, or add it.
-        val cverse = TreeItem<BibleInterface?>(verse)
-        if (cverse !in cchapter.children) {
-            cchapter.children += cverse
-        }
-    }
-
-    /**
-     * Checks if the bible section is already listed in the current tree
-     */
-    private fun MutableCollection<TreeItem<BibleInterface?>>.getOrPutItem(
-        toFind: BibleInterface
-    ): TreeItem<BibleInterface?> = find { it.value!!.name == toFind.name }
-        ?: TreeItem(toFind).also { add(it) }
-
-    /**
-     * Resets the root based on the current selected index of the combobox. If
-     * all, a blank root is created, if a bible is selected it becomes the root
-     */
-    fun resetRoot() {
-        if (controller.isBibleSelected) {
-            val bib = controller.bibleFilter
-            BibleManager.biblesList.find { it.name == bib }?.let {
-                root = TreeItem(it)
-            }
-        } else {
-            root = TreeItem()
-        }
-        rootItem = root
-        this.isShowRoot = false
+        controller.onVerseSelected(selectedVerse)
     }
 }
