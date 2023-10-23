@@ -17,8 +17,7 @@
  */
 package org.quelea.data.bible
 
-import javafx.event.Event
-import javafx.scene.control.SelectionMode
+import javafx.scene.Parent
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
 import javafx.scene.input.KeyCode
@@ -30,39 +29,40 @@ import tornadofx.*
  * @constructor Constructs a TreeView object with a blank root BibleInterface item.
  * @author Ben
  */
-class BibleSearchTreeView : TreeView<BibleInterface?>() {
+class BibleSearchTreeView : View() {
     val controller = find<BibleSearchController>()
 
-    init {
-        selectionModel.selectionMode = SelectionMode.SINGLE
+    override val root: Parent = treeview<BibleInterface?>(TreeItem(null)) {
+        bindSelected(controller.selectedElement)
+
         setOnKeyReleased {
             if (it.code == KeyCode.RIGHT)
-                trigger(it, false)
+                trigger(false)
         }
-        this.setOnMouseClicked(::trigger)
+        setOnMouseClicked { trigger() }
 
-        cellFormat {
-            text = it?.name ?: "IT IS NULL!"
-        }
+        cellFormat { text = it?.name ?: "null" }
 
         root = TreeItem(null)
         isShowRoot = false
-        populateTree(root, { TreeItem(it) }){
-            when(val value = it.value) {
-                is BibleVerse -> null
-                is BibleChapter -> controller.bibleChapToVerse[value]
-                is BibleBook -> controller.bibleBookToChap[value]
-                is Bible -> controller.bibleVersionToBook[value]
-                null -> controller.treeRootElements
-                else -> null
+        controller.treeViewData.onChange { data ->
+            data ?: return@onChange
+            populateTree(root, { TreeItem(it) }) {
+                when (val value = it.value) {
+                    is BibleVerse -> null
+                    is BibleChapter -> data.chapterToVerse[value]
+                    is BibleBook -> data.bookToChapter[value]
+                    is Bible -> data.bibleToBook[value]
+                    null -> data.treeRootElements
+                    else -> null
+                }
             }
         }
     }
 
-    private fun trigger(t: Event, toggleCollapse : Boolean = true) {
-        val tv = t.source as BibleSearchTreeView
-        val ti = tv.selectionModel.selectedItem ?: run {
-            tv.selectionModelProperty().get().selectFirst()
+    private fun TreeView<BibleInterface?>.trigger(toggleCollapse : Boolean = true) {
+        val ti = selectionModel.selectedItem ?: run {
+            selectFirst()
             return
         }
 

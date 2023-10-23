@@ -22,10 +22,8 @@ import javafx.scene.image.ImageView
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.scene.text.Text
-import org.quelea.data.displayable.BiblePassage
 import org.quelea.services.languages.LabelGrabber
 import org.quelea.services.utils.QueleaProperties
-import org.quelea.windows.main.schedule.SchedulePanel
 import org.quelea.windows.main.widgets.LoadingPane
 import tornadofx.*
 
@@ -39,8 +37,6 @@ class BibleSearchDialog : View(
     title = LabelGrabber.INSTANCE.getLabel("bible.search.title"),
     icon = ImageView(Image("file:icons/search.png"))
 ) {
-    private lateinit var searchResults: BibleSearchTreeView
-
     private val controller = find<BibleSearchController>()
 
     override val root = borderpane {
@@ -54,7 +50,6 @@ class BibleSearchDialog : View(
                     isEditable = false
 
                     setOnAction {
-//                        searchResults.reset()
                         controller.update()
                     }
                 }
@@ -68,18 +63,7 @@ class BibleSearchDialog : View(
                     text = LabelGrabber.INSTANCE.getLabel("add.to.schedule.text"),
                     graphic = ImageView(Image("file:icons/tick.png"))
                 ) {
-                    action {
-                        val chap = (searchResults.selectedValue as? BibleVerse)?.parent
-                            ?: return@action
-
-                        val passage = BiblePassage(
-                            chap.parent.parent.bibleName,
-                            "${chap.book} $chap",
-                            chap.verses,
-                            false
-                        )
-                        FX.find<SchedulePanel>().scheduleList.add(passage)
-                    }
+                    action(controller::addToSchedule)
                 }
 
                 //results field
@@ -89,7 +73,6 @@ class BibleSearchDialog : View(
                             it == -1 -> " " + LabelGrabber.INSTANCE.getLabel("bible.search.keep.typing")
                             it == 1 && LabelGrabber.INSTANCE.isLocallyDefined("bible.search.result.found") ->
                                 " 1 " + LabelGrabber.INSTANCE.getLabel("bible.search.result.found")
-
                             else -> " $it " + LabelGrabber.INSTANCE.getLabel("bible.search.results.found")
                         }
                     }
@@ -106,8 +89,7 @@ class BibleSearchDialog : View(
                 //searchPane
 
                 stackpane {
-                    searchResults = BibleSearchTreeView()
-                        .attachTo(this)
+                    add<BibleSearchTreeView>()
                     LoadingPane(showing = controller.showLoading)
                         .attachTo(this)
                 }
@@ -142,15 +124,11 @@ class BibleSearchDialog : View(
     init {
         if (QueleaProperties.get().useDarkTheme)
             importStylesheet("org/modena_dark.css")
-
-        subscribe<ResetAndExpandRoot> {
-//            searchResults.reset()
-        }
     }
 
     override fun onDock() {
         super.onDock()
         setWindowMinSize(500, 300)
-        BibleManager.takeUnless { it.isIndexInit }?.refreshAndLoad()
+        controller.refresh()
     }
 }

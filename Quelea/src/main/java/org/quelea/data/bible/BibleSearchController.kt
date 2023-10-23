@@ -1,8 +1,9 @@
 package org.quelea.data.bible
 
-import javafx.collections.ObservableList
+import org.quelea.data.displayable.BiblePassage
 import org.quelea.services.languages.LabelGrabber
 import org.quelea.utils.javaTrim
+import org.quelea.windows.main.schedule.SchedulePanel
 import tornadofx.*
 import java.util.concurrent.Executors
 
@@ -20,15 +21,14 @@ class BibleSearchController : Controller() {
     }
     val cannotSearch = booleanProperty(true)
 
-    val bibleFilterProp = stringProperty(allBibleVersions).apply {
-        onChange { if (it==null) value = allBibleVersions }
+    val bibleList = observableListOf(ALL_BIBLE_VERSIONS)
+    val bibleFilterProp = stringProperty(ALL_BIBLE_VERSIONS).apply {
+        onChange { update() }
     }
 
     var bibleFilter : String? by bibleFilterProp
-    val bibleList = observableListOf<String>()
 
-    val isBibleSelected get() = bibleFilter != allBibleVersions || bibleFilter == null
-
+    val isBibleSelected get() = bibleFilter != ALL_BIBLE_VERSIONS || bibleFilter == null
     val showLoading = booleanProperty(false)
 
 
@@ -36,9 +36,9 @@ class BibleSearchController : Controller() {
         BibleManager.runOnIndexInit { cannotSearch.value = false }
         BibleManager.registerBibleChangeListener(invokeImmediately = true) {
             bibleList.clear()
-            bibleList.add(allBibleVersions)
+            bibleList.add(ALL_BIBLE_VERSIONS)
             bibleList.addAll(BibleManager.biblesList.map { it.name })
-            bibleFilterProp.value = allBibleVersions
+            bibleFilterProp.value = ALL_BIBLE_VERSIONS
         }
     }
 
@@ -52,7 +52,6 @@ class BibleSearchController : Controller() {
         val text = searchTextProp.value
         if (text.length > 3) {
             if (BibleManager.isIndexInit) {
-                fire(ResetAndExpandRoot)
                 showLoading.value = true
                 val execRunnable = object : ExecRunnable {
                     private var cancel = false
@@ -85,59 +84,36 @@ class BibleSearchController : Controller() {
                 updateExecutor.submit(execRunnable)
             }
         }
-        fire(ResetAndExpandRoot)
         searchResultCount.set(-1)
         versesOfCurrentChapter.clear()
     }
 
 
-    val bibleMatches = observableListOf<Bible>()
-    val bibleVersionToBook = mutableMapOf<Bible, ObservableList<BibleBook>>()
-    val bibleBookToChap = mutableMapOf<BibleBook, ObservableList<BibleChapter>>()
-    val bibleChapToVerse = mutableMapOf<BibleChapter, ObservableList<BibleVerse>>()
-
-    val treeRootElements = observableListOf<BibleInterface>()
-    fun updateBibleMatches() {
-        val verses = if (isBibleSelected) filteredVerses.filter {
-            it.chapter.book.bible.bibleName == bibleFilter
-        } else filteredVerses
-
+    class TreeViewData(
+        verses : List<BibleVerse>,
+        bibleSelected : Boolean
+    ) {
         val chapterToVerse = verses.groupBy { it.chapter }
-
         val bookToChapter = chapterToVerse.keys.groupBy { it.book }
         val bibleToBook = bookToChapter.keys.groupBy { it.bible }
-
-
-        bibleMatches.setAll(bibleToBook.keys)
-
-        bibleChapToVerse.keys.retainAll(chapterToVerse.keys)
-        bibleVersionToBook.keys.retainAll(bibleToBook.keys)
-        bibleBookToChap.keys.retainAll(bookToChapter.keys)
-
-        bibleToBook.forEach { (bible, books) ->
-            bibleVersionToBook.getOrPut(bible, ::observableListOf)
-                .setAll(books)
-        }
-
-        chapterToVerse.forEach { (chapter, verses) ->
-            bibleChapToVerse.getOrPut(chapter, ::observableListOf)
-                .setAll(verses)
-        }
-
-        bookToChapter.forEach { (book, chapters) ->
-            bibleBookToChap.getOrPut(book, ::observableListOf)
-                .setAll(chapters)
-        }
-
-
-
-        treeRootElements.setAll(when{
-            !isBibleSelected -> bibleMatches
-            else -> when(val bible = bibleMatches.firstOrNull()) {
+        val treeRootElements : List<BibleInterface> = when {
+            !bibleSelected -> bibleToBook.keys.toList()
+            else -> when(val bible = bibleToBook.keys.firstOrNull()) {
                 null -> emptyList()
-                else -> bibleToBook[bible]
+                else -> bibleToBook[bible].orEmpty()
             }
-        })
+        }
+    }
+
+    val selectedElement = objectProperty<BibleInterface?>()
+
+    val treeViewData = objectProperty(TreeViewData(emptyList(), false))
+    fun updateBibleMatches() {
+        treeViewData.value = TreeViewData(filteredVerses, isBibleSelected)
+    }
+
+    fun refresh() {
+        BibleManager.takeUnless { it.isIndexInit }?.refreshAndLoad()
     }
 
     fun onVerseSelected(selectedVerse: BibleVerse) {
@@ -157,10 +133,21 @@ class BibleSearchController : Controller() {
     }
 
 
+    fun addToSchedule() {
+        val chap = (selectedElement.value as? BibleVerse)?.parent
+            ?: return
+
+        val passage = BiblePassage(
+            chap.parent.parent.bibleName,
+            "${chap.book} $chap",
+            chap.verses,
+            false
+        )
+        FX.find<SchedulePanel>().scheduleList.add(passage)
+    }
+
     companion object{
-        val allBibleVersions : String =
+        val ALL_BIBLE_VERSIONS : String =
             LabelGrabber.INSTANCE.getLabel("all.text")
     }
 }
-
-object ResetAndExpandRoot : FXEvent()
