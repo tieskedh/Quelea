@@ -1,83 +1,60 @@
-package org.quelea.windows.options.customprefs;
+package org.quelea.windows.options.customprefs
 
-import com.dlsc.formsfx.model.structure.StringField;
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl;
-import javafx.geometry.Pos;
-import javafx.scene.control.ColorPicker;
-import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
+import com.dlsc.formsfx.model.structure.StringField
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl
+import javafx.geometry.Pos
+import javafx.scene.control.ColorPicker
+import javafx.scene.layout.StackPane
+import javafx.scene.paint.Color
+import tornadofx.*
 
-public class ColorPickerPreference extends SimpleControl<StringField, StackPane> {
-
+class ColorPickerPreference(
+    private val initialValue: Color
+) : SimpleControl<StringField, StackPane>() {
     /**
-     * - The colorPicker is the container that displays the node to select a color value.
+     * The colorPicker is the container that displays the node to select a color value.
      */
-    private ColorPicker colorPicker;
-    private Color initialValue;
+    private lateinit var colorPicker: ColorPicker
 
-    public ColorPickerPreference(Color initialValue) {
-        this.initialValue = initialValue;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initializeParts() {
-        super.initializeParts();
-
-        node = new StackPane();
-        node.getStyleClass().add("simple-text-control");
-
-        colorPicker = new ColorPicker(initialValue);
-        colorPicker.setMaxWidth(Double.MAX_VALUE);
-        colorPicker.setOnAction(event -> {
-            if (!field.valueProperty().getValue().equals(getColorString(colorPicker.getValue())))
-                field.valueProperty().setValue(getColorString(colorPicker.getValue()));
-        });
-
-        field.valueProperty().setValue(getColorString(colorPicker.getValue()));
-    }
-
-    private String getColorString(Color color) {
-        return color.getRed() + "," + color.getGreen() + "," + color.getBlue();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void layoutParts() {
-        node.getChildren().addAll(colorPicker);
-        node.setAlignment(Pos.CENTER_LEFT);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupBindings() {
-        super.setupBindings();
-        field.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.isEmpty()) {
-                String[] rgb = newValue.split(",");
-                Color newColor = Color.rgb((int) (Double.parseDouble(rgb[0]) * 255), (int) (Double.parseDouble(rgb[1]) * 255), (int) (Double.parseDouble(rgb[2]) * 255));
-                if (!colorPicker.getValue().equals(newColor)) {
-                    colorPicker.setValue(newColor);
-                }
+    override fun initializeParts() {
+        super.initializeParts()
+        node = StackPane().apply {
+            styleClass.add("simple-text-control")
+        }
+        colorPicker = ColorPicker(initialValue).apply {
+            maxWidth = Double.MAX_VALUE
+            val colorStr =  value.toColorString()
+            setOnAction {
+                if (field.valueProperty().value != colorStr)
+                    field.valueProperty().value = colorStr
             }
-        });
+        }
+
+        field.valueProperty().value = colorPicker.value.toColorString()
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupValueChangedListeners() {
-        super.setupValueChangedListeners();
+    private fun Color.toColorString(): String = run { "$red,$green,$blue" }
 
-        colorPicker.focusedProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(colorPicker)
-        );
+    override fun layoutParts() {
+        node.children.addAll(colorPicker)
+        node.alignment = Pos.CENTER_LEFT
+    }
+
+    override fun setupBindings() {
+        super.setupBindings()
+        field.valueProperty().onChange { newValue ->
+            if (!newValue.isNullOrEmpty()) {
+                val (r,g,b) = newValue.split(',',limit=4)
+                    .map { (it.toDouble() * 255).toInt() }
+                val newColor = Color.rgb(r, g, b)
+                if (colorPicker.value != newColor) colorPicker.value = newColor
+            }
+        }
+    }
+
+
+    override fun setupValueChangedListeners() {
+        super.setupValueChangedListeners()
+        colorPicker.focusedProperty().onChange { toggleTooltip(colorPicker) }
     }
 }

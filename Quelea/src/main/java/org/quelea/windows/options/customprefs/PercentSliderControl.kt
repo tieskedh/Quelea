@@ -1,137 +1,116 @@
-package org.quelea.windows.options.customprefs;
+package org.quelea.windows.options.customprefs
 
-import com.dlsc.formsfx.model.structure.DoubleField;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
+import com.dlsc.formsfx.model.structure.DoubleField
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl
+import javafx.beans.value.ObservableValue
+import javafx.collections.ObservableList
+import javafx.geometry.Pos
+import javafx.scene.control.Label
+import javafx.scene.control.Slider
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
+import tornadofx.*
+import java.math.RoundingMode
 
 /**
- * Provides an implementation of a percent slider control for an {@link DoubleField}.
+ * Provides an implementation of a percent slider control for an [DoubleField].
+ *
+ * @constructor Creates a slider for double values with a minimum and maximum value, with a set precision.
+ *
+ * @param min       minimum slider value
+ * @param max       maximum slider value
+ * @param precision number of digits after the decimal point
+ *
  *
  * @author François Martin
  * @author Marco Sanfratello
  * @author Arvid Nyström
  */
-public class PercentSliderControl extends SimpleControl<DoubleField, HBox> {
-    public static final int VALUE_LABEL_PADDING = 25;
+class PercentSliderControl(
+    private val min: Double,
+    private val max: Double,
+    private val precision: Int
+) : SimpleControl<DoubleField, HBox>() {
     /**
      * - fieldLabel is the container that displays the label property of the
      * field.
      * - slider is the control to change the value.
      * - node holds the control so that it can be styled properly.
      */
-    private Slider slider;
-    private Label valueLabel;
-    private double min;
-    private double max;
-    private int precision;
+    private lateinit var slider: Slider
+    private lateinit var valueLabel: Label
 
     /**
-     * Creates a slider for double values with a minimum and maximum value, with a set precision.
+     * Rounds a value to a given precision, using [RoundingMode.HALF_UP].
      *
-     * @param min       minimum slider value
-     * @param max       maximum slider value
-     * @param precision number of digits after the decimal point
-     */
-    public PercentSliderControl(double min, double max, int precision) {
-        super();
-        this.min = min;
-        this.max = max;
-        this.precision = precision;
-    }
-
-    /**
-     * Rounds a value to a given precision, using {@link RoundingMode#HALF_UP}.
-     *
-     * @param value     value to be rounded
+     * @receiver        value to be rounded
      * @param precision number of digits after the decimal point
      * @return
      */
-    private double round(double value, int precision) {
-        return BigDecimal.valueOf(value)
-                .setScale(precision, RoundingMode.HALF_UP)
-                .doubleValue();
+    private fun Double.round(precision: Int) = toBigDecimal()
+        .setScale(precision, RoundingMode.HALF_UP)
+        .toDouble()
+
+
+    override fun initializeParts() {
+        super.initializeParts()
+        fieldLabel = Label(field.labelProperty().value)
+        valueLabel = Label((100 * field.value).toInt().toString() + "%")
+        slider = Slider().also {
+            it.min = min
+            it.max = max
+            it.isShowTickLabels = false
+            it.isShowTickMarks = false
+            it.value = field.value
+        }
+
+        node = HBox()
+        node.styleClass.add("double-slider-control")
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initializeParts() {
-        super.initializeParts();
 
-        fieldLabel = new Label(field.labelProperty().getValue());
+    override fun layoutParts() {
+        node.apply {
+            spacing = VALUE_LABEL_PADDING.toDouble()
 
-        valueLabel = new Label((int) (100 * field.getValue()) + "%");
+            slider.attachTo(this) {
+                hboxConstraints { hgrow = Priority.ALWAYS }
+            }
 
-        slider = new Slider();
-        slider.setMin(min);
-        slider.setMax(max);
-        slider.setShowTickLabels(false);
-        slider.setShowTickMarks(false);
-        slider.setValue(field.getValue());
-
-        node = new HBox();
-        node.getStyleClass().add("double-slider-control");
+            valueLabel.attachTo(this) {
+                hboxConstraints { marginRight = VALUE_LABEL_PADDING.toDouble() }
+                alignment = Pos.CENTER
+                minWidth = VALUE_LABEL_PADDING.toDouble()
+            }
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void layoutParts() {
-        node.getChildren().addAll(slider, valueLabel);
-        HBox.setHgrow(slider, Priority.ALWAYS);
-        valueLabel.setAlignment(Pos.CENTER);
-        valueLabel.setMinWidth(VALUE_LABEL_PADDING);
-        node.setSpacing(VALUE_LABEL_PADDING);
-        HBox.setMargin(valueLabel, new Insets(0, VALUE_LABEL_PADDING, 0, 0));
+    override fun setupValueChangedListeners() {
+        super.setupValueChangedListeners()
+        field.userInputProperty().onChange {
+                val sliderValue = field.userInput.toDouble()
+                    .round(precision)
+                slider.value = sliderValue
+                valueLabel.text = (100 * field.value).toInt().toString() + "%"
+            }
+
+        field.errorMessagesProperty().onChange { _ : ObservableList<String?>? ->
+            toggleTooltip(slider)
+        }
+
+
+        field.tooltipProperty().onChange { toggleTooltip(slider) }
+        slider.focusedProperty().onChange { _: Boolean? -> toggleTooltip(slider) }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupBindings() {
-        super.setupBindings();
+
+    override fun setupEventHandlers() {
+        slider.valueProperty().onChange { newValue: Number ->
+            field.userInputProperty().value = newValue.toDouble().round(precision).toString()
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupValueChangedListeners() {
-        super.setupValueChangedListeners();
-        field.userInputProperty().addListener((observable, oldValue, newValue) -> {
-            double sliderValue = round(Double.parseDouble(field.getUserInput()), precision);
-            slider.setValue(sliderValue);
-            valueLabel.setText((int) (100 * field.getValue()) + "%");
-        });
-
-        field.errorMessagesProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(slider));
-        field.tooltipProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(slider));
-
-        slider.focusedProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(slider));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupEventHandlers() {
-        slider.valueProperty().addListener((observable, oldValue, newValue) -> {
-            field.userInputProperty().setValue(String.valueOf(round(newValue.doubleValue(), precision)));
-        });
+    companion object {
+        const val VALUE_LABEL_PADDING = 25
     }
 }

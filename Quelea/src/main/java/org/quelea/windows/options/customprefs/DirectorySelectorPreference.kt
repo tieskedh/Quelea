@@ -1,103 +1,74 @@
-package org.quelea.windows.options.customprefs;
+package org.quelea.windows.options.customprefs
 
-import com.dlsc.formsfx.model.structure.StringField;
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl;
-import javafx.beans.binding.Bindings;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.stage.DirectoryChooser;
+import com.dlsc.formsfx.model.structure.StringField
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl
+import javafx.beans.binding.Bindings
+import javafx.beans.value.ObservableValue
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import javafx.geometry.Pos
+import javafx.scene.control.Button
+import javafx.scene.control.TextField
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
+import javafx.scene.layout.StackPane
+import javafx.stage.DirectoryChooser
+import tornadofx.*
+import java.io.File
 
-import java.io.File;
-
-public class DirectorySelectorPreference extends SimpleControl<StringField, StackPane> {
-
+class DirectorySelectorPreference(private val buttonText: String, private val initialDirectory: File?) :
+    SimpleControl<StringField, StackPane>() {
     /**
      * - The fieldLabel is the container that displays the label property of
      * the field.
      * - The editableField allows users to modify the field's value.
      */
-    private TextField editableField;
-    private Button directoryChooserButton = new Button();
-    private HBox hBox = new HBox();
-    private String buttonText;
-    private File initialDirectory;
+    private lateinit var editableField: TextField
+    private lateinit var directoryChooserButton : Button
+    private lateinit var hBox : HBox
 
-    public DirectorySelectorPreference(String buttonText, File initialDirectory) {
-        this.buttonText = buttonText;
-        this.initialDirectory = initialDirectory;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initializeParts() {
-        super.initializeParts();
-
-        node = new StackPane();
-        node.getStyleClass().add("simple-text-control");
-
-        editableField = new TextField(field.getValue());
-
-        DirectoryChooser directoryChooser = new DirectoryChooser();
-
+    override fun initializeParts() {
+        super.initializeParts()
+        node = StackPane().apply {
+            styleClass.add("simple-text-control")
+        }
+        val directoryChooser = DirectoryChooser()
         if (initialDirectory != null) {
-            directoryChooser.setInitialDirectory(initialDirectory);
+            directoryChooser.initialDirectory = initialDirectory
         }
 
-        directoryChooserButton.setOnAction(event -> {
-            File dir = directoryChooser.showDialog(getNode().getScene().getWindow());
-            if (dir != null) {
-                editableField.setText(dir.getAbsolutePath());
+        hBox = HBox().apply {
+            editableField = textfield(field.value){
+                promptText = field.placeholder
             }
-        });
-
-        directoryChooserButton.setText(buttonText);
-
-        editableField.setPromptText(field.placeholderProperty().getValue());
-
-        hBox.getChildren().addAll(editableField, directoryChooserButton);
+            directoryChooserButton = button(buttonText){
+                setOnAction {
+                    directoryChooser.showDialog(node.scene.window)?.also { dir ->
+                        editableField.text = dir.absolutePath
+                    }
+                }
+            }
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void layoutParts() {
-        HBox.setHgrow(editableField, Priority.ALWAYS);
-        node.setAlignment(Pos.CENTER_LEFT);
-        node.getChildren().addAll(hBox);
+    override fun layoutParts() {
+        HBox.setHgrow(editableField, Priority.ALWAYS)
+        node.alignment = Pos.CENTER_LEFT
+        node.children.addAll(hBox)
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupBindings() {
-        super.setupBindings();
-
-        editableField.visibleProperty().bind(Bindings.and(field.editableProperty(),
-                field.multilineProperty().not()));
-
-        editableField.textProperty().bindBidirectional(field.userInputProperty());
-        editableField.promptTextProperty().bind(field.placeholderProperty());
-        editableField.managedProperty().bind(editableField.visibleProperty());
+    override fun setupBindings() {
+        super.setupBindings()
+        editableField.visibleProperty().bind(
+            field.editableProperty().and(!field.multilineProperty())
+        )
+        editableField.textProperty().bindBidirectional(field.userInputProperty())
+        editableField.promptTextProperty().bind(field.placeholderProperty())
+        editableField.managedProperty().bind(editableField.visibleProperty())
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupValueChangedListeners() {
-        super.setupValueChangedListeners();
-
-
-        editableField.focusedProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(editableField)
-        );
+    override fun setupValueChangedListeners() {
+        super.setupValueChangedListeners()
+        editableField.focusedProperty().onChange { toggleTooltip(editableField) }
     }
 }

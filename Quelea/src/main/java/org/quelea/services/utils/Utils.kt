@@ -524,7 +524,7 @@ fun <T> MutableList<T>.distinctInPlace() {
  */
 @Throws(IOException::class)
 @JvmName("copyFile")
-fun File.copyFileWithFilters(destFile: File) {
+fun File.copyFileWithFiltersTo(destFile: File) {
     if (isDirectory && name == ".svn") return
     copyRecursively(destFile, overwrite = true)
 }

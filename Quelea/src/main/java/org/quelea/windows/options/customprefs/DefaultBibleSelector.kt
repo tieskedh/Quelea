@@ -1,193 +1,175 @@
-package org.quelea.windows.options.customprefs;
+package org.quelea.windows.options.customprefs
 
-import com.dlsc.formsfx.model.structure.SingleSelectionField;
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.stage.FileChooser;
-import org.javafx.dialog.Dialog;
-import org.quelea.data.bible.Bible;
-import org.quelea.data.bible.BibleManager;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.FileFilters;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.main.QueleaApp;
+import com.dlsc.formsfx.model.structure.SingleSelectionField
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleControl
+import javafx.collections.ObservableList
+import javafx.event.EventTarget
+import javafx.geometry.Pos
+import javafx.scene.control.ComboBox
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.Priority
+import javafx.scene.layout.StackPane
+import javafx.stage.FileChooser
+import org.javafx.dialog.Dialog
+import org.quelea.data.bible.Bible.Companion.parseBible
+import org.quelea.data.bible.BibleManager
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.FileFilters
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties
+import org.quelea.services.utils.copyFileWithFiltersTo
+import org.quelea.windows.main.QueleaApp
+import tornadofx.*
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+/**
+ * - The fieldLabel is the container that displays the label property of
+ * the field.
+ * - The comboBox is the container that displays the values in the
+ * ComboBox.
+ * - The readOnlyLabel is used to show the current selection in read only.
+ * - The node is a StackPane to hold the field and read only label.
+ */
+class DefaultBibleSelector : SimpleControl<SingleSelectionField<String>, StackPane>() {
+    private lateinit var comboBox: ComboBox<String>
 
-public class DefaultBibleSelector extends SimpleControl<SingleSelectionField<String>, StackPane> {
-
-    /**
-     * - The fieldLabel is the container that displays the label property of
-     * the field.
-     * - The comboBox is the container that displays the values in the
-     * ComboBox.
-     * - The readOnlyLabel is used to show the current selection in read only.
-     * - The node is a StackPane to hold the field and read only label.
-     */
-    private ComboBox<String> comboBox;
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void initializeParts() {
-        super.initializeParts();
-
-
-        node = new StackPane();
-        node.setMaxWidth(Double.MAX_VALUE);
-        node.getStyleClass().add("simple-select-control");
-
-        comboBox = new ComboBox<String>(field.getItems());
-
-        comboBox.getSelectionModel().select(field.getItems().indexOf(field.getSelection()));
+    override fun initializeParts() {
+        super.initializeParts()
+        node = StackPane().apply {
+            maxWidth = Double.MAX_VALUE
+            styleClass.add("simple-select-control")
+        }
+        comboBox = ComboBox(field.items as ObservableList<String>).apply {
+            selectionModel.select(field.items.indexOf(field.selection))
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void layoutParts() {
 
-        comboBox.setVisibleRowCount(4);
-        comboBox.setMaxWidth(Double.MAX_VALUE);
-        comboBox.setMinWidth(100);
+    override fun layoutParts() {
+        node.apply {
+            alignment = Pos.CENTER_LEFT
 
-        node.setAlignment(Pos.CENTER_LEFT);
-        HBox hBox = new HBox();
-        hBox.getChildren().addAll(comboBox, createAddBibleButton(), createDeleteBibleButton());
-        HBox.setHgrow(comboBox, Priority.ALWAYS);
-        node.getChildren().addAll(hBox);
+            hbox {
+                comboBox.attachTo(this) {
+                    hboxConstraints { hGrow = Priority.ALWAYS }
+                    visibleRowCount = 4
+                    maxWidth = Double.MAX_VALUE
+                    minWidth = 100.0
+                }
+
+                addBibleButton()
+                deleteBibleButton()
+            }
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupBindings() {
-        super.setupBindings();
-
-        comboBox.visibleProperty().bind(field.editableProperty());
+    override fun setupBindings() {
+        super.setupBindings()
+        comboBox.visibleProperty().bind(field.editableProperty())
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setupValueChangedListeners() {
-        super.setupValueChangedListeners();
-
-        field.itemsProperty().addListener(
-                (observable, oldValue, newValue) -> comboBox.setItems(field.getItems())
-        );
-
-        field.selectionProperty().addListener((observable, oldValue, newValue) -> {
-            if (field.getSelection() != null) {
-                comboBox.getSelectionModel().select(field.getItems().indexOf(field.getSelection()));
+    override fun setupValueChangedListeners() {
+        super.setupValueChangedListeners()
+        field.itemsProperty().onChange { _: ObservableList<String>? ->
+            comboBox.setItems(field.items as ObservableList<String>)
+        }
+        field.selectionProperty().onChange {
+            if (it != null) {
+                comboBox.selectionModel.select(field.items.indexOf(it))
             } else {
-                comboBox.getSelectionModel().clearSelection();
+                comboBox.selectionModel.clearSelection()
             }
-        });
+        }
 
-        field.errorMessagesProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(comboBox)
-        );
-        field.tooltipProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(comboBox)
-        );
-        comboBox.focusedProperty().addListener(
-                (observable, oldValue, newValue) -> toggleTooltip(comboBox)
-        );
+        field.errorMessagesProperty().onChange { _: ObservableList<String>? ->
+            toggleTooltip(comboBox)
+        }
+        field.tooltipProperty().onChange { toggleTooltip(comboBox) }
+        comboBox.focusedProperty().onChange { toggleTooltip(comboBox) }
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void setupEventHandlers() {
-        comboBox.valueProperty().addListener((observable, oldValue, newValue) ->
-                field.select(comboBox.getSelectionModel().getSelectedIndex())
-        );
+    override fun setupEventHandlers() {
+        comboBox.valueProperty().onChange {
+            field.select(comboBox.selectionModel.selectedIndex)
+        }
     }
 
-    private Button createAddBibleButton() {
-        final Button addBibleButton = new Button(LabelGrabber.INSTANCE.getLabel("add.bible.label"),
-                new ImageView(new Image("file:icons/add.png")));
-        addBibleButton.setOnAction(t -> {
-
-            FileChooser chooser = new FileChooser();
-            if (QueleaProperties.get().getLastDirectory() != null) {
-                chooser.setInitialDirectory(QueleaProperties.get().getLastDirectory());
-            }
-            chooser.getExtensionFilters().add(FileFilters.XML_BIBLE);
-            File file = chooser.showOpenDialog(QueleaApp.get().getMainWindow());
-            if (file != null) {
-                QueleaProperties.get().setLastDirectory(file.getParentFile());
-                if(Bible.parseBible(file)==null) {
-                    LOGGER.log(Level.WARNING, "Tried to add corrupt bible: ", file.getAbsolutePath());
-                    Dialog.showError(LabelGrabber.INSTANCE.getLabel("bible.load.error.title"),
-                            LabelGrabber.INSTANCE.getLabel("bible.load.error.question"));
-                }
-                else {
-                    try {
-                        Utils.copyFile(file, new File(QueleaProperties.get().getBibleDir(), file.getName()));
-                        BibleManager.get().refreshAndLoad();
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.WARNING, "Error copying bible file", ex);
-                        Dialog.showError(LabelGrabber.INSTANCE.getLabel("bible.copy.error.heading"),
-                                LabelGrabber.INSTANCE.getLabel("bible.copy.error.text"));
-                    }
-                }
+    private fun EventTarget.addBibleButton() = button(
+        LabelGrabber.INSTANCE.getLabel("add.bible.label"),
+        ImageView(Image("file:icons/add.png"))
+    ) {
+        setOnAction {
+            val chooser = FileChooser()
+            QueleaProperties.get().lastDirectory?.let { lastDir ->
+                chooser.initialDirectory = lastDir
             }
 
-        });
-        return addBibleButton;
+            chooser.extensionFilters.add(FileFilters.XML_BIBLE)
+            val file = chooser.showOpenDialog(QueleaApp.get().mainWindow) ?: return@setOnAction
+
+            QueleaProperties.get().setLastDirectory(file.parentFile)
+            if (parseBible(file) == null) {
+                LOGGER.log(Level.WARNING, "Tried to add corrupt bible: ", file.absolutePath)
+                Dialog.showError(
+                    LabelGrabber.INSTANCE.getLabel("bible.load.error.title"),
+                    LabelGrabber.INSTANCE.getLabel("bible.load.error.question")
+                )
+            } else {
+                try {
+                    file.copyFileWithFiltersTo(File(QueleaProperties.get().bibleDir, file.name))
+                    BibleManager.get().refreshAndLoad()
+                } catch (ex: IOException) {
+                    LOGGER.log(Level.WARNING, "Error copying bible file", ex)
+                    Dialog.showError(
+                        LabelGrabber.INSTANCE.getLabel("bible.copy.error.heading"),
+                        LabelGrabber.INSTANCE.getLabel("bible.copy.error.text")
+                    )
+                }
+            }
+        }
     }
 
-    private Button createDeleteBibleButton() {
-        final Button deleteBibleButton = new Button(LabelGrabber.INSTANCE.getLabel("delete.bible.label"),
-                new ImageView(new Image("file:icons/cross.png")));
-        deleteBibleButton.setOnAction(t -> {
+    private fun EventTarget.deleteBibleButton() = button(
+        LabelGrabber.INSTANCE.getLabel("delete.bible.label"),
+        ImageView(Image("file:icons/cross.png"))
+    ) {
+        setOnAction {
+            val bible = BibleManager.get().getBibleFromName(comboBox.selectionModel.selectedItem)
+            val biblePath = bible?.filePath ?: return@setOnAction
 
-            Bible bible = BibleManager.get().getBibleFromName(comboBox.getSelectionModel().getSelectedItem());
-            if (bible != null && bible.getFilePath() != null) {
+            val yes = AtomicBoolean()
 
-                final AtomicBoolean yes = new AtomicBoolean();
-                Dialog.buildConfirmation(LabelGrabber.INSTANCE.getLabel("delete.bible.label"),
-                        LabelGrabber.INSTANCE.getLabel("delete.bible.confirmation").replace("$1", bible.getBibleName())).
-                        addYesButton(ae -> {
-                            yes.set(true);
-                        }).addNoButton(ae -> {
-                }).build().showAndWait();
-
-                if (yes.get()) {
-                    try {
-                        Files.delete(Paths.get(bible.getFilePath()));
-                        BibleManager.get().refreshAndLoad();
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.WARNING, "Error deleting bible file", ex);
-                        Dialog.showError(LabelGrabber.INSTANCE.getLabel("bible.delete.error.heading"),
-                                LabelGrabber.INSTANCE.getLabel("bible.delete.error.text"));
-                    }
+            Dialog.buildConfirmation(
+                LabelGrabber.INSTANCE.getLabel("delete.bible.label"),
+                LabelGrabber.INSTANCE.getLabel("delete.bible.confirmation").replace("$1", bible.bibleName)
+            ).addYesButton { yes.set(true) }
+                .addNoButton { }
+                .build().showAndWait()
+            if (yes.get()) {
+                try {
+                    Files.delete(Paths.get(biblePath))
+                    BibleManager.get().refreshAndLoad()
+                } catch (ex: IOException) {
+                    LOGGER.log(Level.WARNING, "Error deleting bible file", ex)
+                    Dialog.showError(
+                        LabelGrabber.INSTANCE.getLabel("bible.delete.error.heading"),
+                        LabelGrabber.INSTANCE.getLabel("bible.delete.error.text")
+                    )
                 }
             }
-        });
-        return deleteBibleButton;
+        }
+    }
+
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
     }
 }
