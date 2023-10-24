@@ -16,20 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.actionhandlers;
+package org.quelea.windows.main.actionhandlers
 
-import javafx.event.EventHandler;
-import org.quelea.windows.main.QueleaApp;
+import javafx.event.ActionEvent
+import javafx.event.EventHandler
+import org.quelea.data.bible.BibleBrowseDialog
+import tornadofx.*
 
 /**
  * Action handler for displaying the dialog to view the contents of bibles.
  * @author Michael
  */
-public class ViewBibleActionHandler implements EventHandler<javafx.event.ActionEvent> {
-
-    @Override
-    public void handle(javafx.event.ActionEvent t) {
-        QueleaApp.get().getMainWindow().getBibleBrowseDialog().show();
+object ViewBibleActionHandler : EventHandler<ActionEvent?> {
+    override fun handle(t: ActionEvent?) {
+        find<BibleBrowseDialog>().openModal()
     }
-    
 }

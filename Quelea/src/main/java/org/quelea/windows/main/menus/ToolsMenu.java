@@ -60,7 +60,7 @@ public class ToolsMenu extends Menu {
         boolean darkTheme = QueleaProperties.get().getUseDarkTheme();
 
         viewBibleItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("view.bible.button"), new ImageView(new Image(darkTheme ? "file:icons/bible-light.png" : "file:icons/bible.png", 20, 20, false, true)));
-        viewBibleItem.setOnAction(new ViewBibleActionHandler());
+        viewBibleItem.setOnAction(ViewBibleActionHandler.INSTANCE);
         getItems().add(viewBibleItem);
 
         searchBibleItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("search.bible.button"), new ImageView(new Image(darkTheme ? "file:icons/bible-light.png" : "file:icons/bible.png", 20, 20, false, true)));
