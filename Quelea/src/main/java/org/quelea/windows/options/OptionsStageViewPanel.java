@@ -46,7 +46,7 @@ import static org.quelea.windows.options.PreferencesDialog.getColorPicker;
  * @author Arvid
  */
 public class OptionsStageViewPanel {
-    private HashMap<Field, ObservableValue> bindings;
+    private HashMap<Field, ObservableValue<Boolean>> bindings;
     private ObservableList<String> lineAlignmentList;
     private ObjectProperty<String> alignmentSelectionProperty;
 
@@ -57,7 +57,7 @@ public class OptionsStageViewPanel {
      * Create the stage view options panel.
      * @param bindings HashMap of bindings to setup after the dialog has been created
      */
-    OptionsStageViewPanel(HashMap<Field, ObservableValue> bindings) {
+    OptionsStageViewPanel(HashMap<Field, ObservableValue<Boolean>> bindings) {
         this.bindings = bindings;
         ArrayList<String> textAlignment = new ArrayList<>();
         for (TextAlignment alignment : TextAlignment.values()) {

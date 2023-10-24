@@ -44,7 +44,7 @@ import static org.quelea.services.utils.QueleaPropertyKeys.recPathKey;
  * @author Arvid
  */
 public class OptionsRecordingPanel {
-    private HashMap<Field, ObservableValue> bindings;
+    private HashMap<Field, ObservableValue<Boolean>> bindings;
     private StringProperty recordingsDirectoryChooserProperty;
     private StringField recordingsDirectoryField;
     private BooleanProperty useConvertProperty;
@@ -57,7 +57,7 @@ public class OptionsRecordingPanel {
      * @param bindings HashMap of bindings to setup after the dialog has been created
      * @param hasVLC   true if VLC is installed
      */
-    OptionsRecordingPanel(HashMap<Field, ObservableValue> bindings, boolean hasVLC) {
+    OptionsRecordingPanel(HashMap<Field, ObservableValue<Boolean>> bindings, boolean hasVLC) {
         this.bindings = bindings;
         this.hasVLC = hasVLC;
         recordingsDirectoryChooserProperty = new SimpleStringProperty(QueleaProperties.get().getRecordingsPath());

@@ -45,7 +45,7 @@ import static org.quelea.services.utils.QueleaPropertyKeys.ooPathKey;
  * @author Arvid
  */
 public class OptionsPresentationPanel {
-    private HashMap<Field, ObservableValue> bindings;
+    private HashMap<Field, ObservableValue<Boolean>> bindings;
     private BooleanProperty useOOProperty;
     private StringProperty directoryChooserOOProperty;
     private BooleanProperty usePPProperty;
@@ -56,7 +56,7 @@ public class OptionsPresentationPanel {
      *
      * @param bindings HashMap of bindings to setup after the dialog has been created
      */
-    OptionsPresentationPanel(HashMap<Field, ObservableValue> bindings) {
+    OptionsPresentationPanel(HashMap<Field, ObservableValue<Boolean>> bindings) {
         this.bindings = bindings;
         useOOProperty = new SimpleBooleanProperty(QueleaProperties.get().getUseOO());
         directoryChooserOOProperty = new SimpleStringProperty(QueleaProperties.get().getOOPath());

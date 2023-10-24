@@ -15,160 +15,160 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.options;
+package org.quelea.windows.options
 
-import com.dlsc.formsfx.model.structure.Field;
-import com.dlsc.formsfx.model.structure.IntegerField;
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleComboBoxControl;
-import com.dlsc.preferencesfx.formsfx.view.controls.SimpleIntegerControl;
-import com.dlsc.preferencesfx.model.Group;
-import com.dlsc.preferencesfx.model.Setting;
-import javafx.beans.property.*;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
-import javafx.geometry.Bounds;
-import javafx.stage.Screen;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
+import com.dlsc.formsfx.model.structure.Field
+import com.dlsc.formsfx.model.structure.IntegerField
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleComboBoxControl
+import com.dlsc.preferencesfx.formsfx.view.controls.SimpleIntegerControl
+import com.dlsc.preferencesfx.model.Group
+import com.dlsc.preferencesfx.model.Setting
+import javafx.beans.property.*
+import javafx.beans.value.ObservableValue
+import javafx.collections.ObservableList
+import javafx.geometry.Bounds
+import javafx.stage.Screen
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.QueleaPropertyKeys.controlScreenKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorHCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorModeKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorScreenKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorWCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorXCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.projectorYCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageHCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageModeKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageScreenKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageWCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageXCoordKey
+import org.quelea.services.utils.QueleaPropertyKeys.stageYCoordKey
+import tornadofx.*
 
-import java.util.HashMap;
 
-import static org.quelea.services.utils.QueleaPropertyKeys.*;
 
-public class DisplayGroup {
-    private boolean displayChange = false;
-    private Group group;
+class DisplayGroup internal constructor(
+    groupName: String,
+    custom: Boolean,
+    bindings: MutableMap<Field<*>, ObservableValue<Boolean>>
+) {
+    var isDisplayChange = false
+    @JvmField
+    var group: Group? = null
 
-    DisplayGroup(String groupName, boolean custom, HashMap<Field, ObservableValue> bindings) {
-        BooleanProperty useCustomPosition = new SimpleBooleanProperty(false);
-        if (groupName.equals(LabelGrabber.INSTANCE.getLabel("projector.screen.label"))) {
-            useCustomPosition = new SimpleBooleanProperty(QueleaProperties.get().isProjectorModeCoords());
-        } else if (groupName.equals(LabelGrabber.INSTANCE.getLabel("stage.screen.label"))) {
-            useCustomPosition = new SimpleBooleanProperty(QueleaProperties.get().isStageModeCoords());
-        }
-        useCustomPosition.addListener(e -> {
-            displayChange = true;
-        });
+    init {
+        val useCustomPosition: BooleanProperty = SimpleBooleanProperty(when (groupName) {
+            LabelGrabber.INSTANCE.getLabel("projector.screen.label") ->
+                get().isProjectorModeCoords
 
-        ObservableList<String> availableScreens = getAvailableScreens(custom);
-        ListProperty<String> screenListProperty = new SimpleListProperty<>(availableScreens);
-        ObjectProperty<String> screenSelectProperty = new SimpleObjectProperty<>(availableScreens.get(0));
-        Field customControl = Field.ofSingleSelectionType(screenListProperty, screenSelectProperty).render(
-                new SimpleComboBoxControl<>());
+            LabelGrabber.INSTANCE.getLabel("stage.screen.label") ->
+                get().isStageModeCoords
 
-        availableScreens.addListener((ListChangeListener<? super String>) e -> {
-            displayChange = true;
-        });
+            else -> false
+        })
 
-        screenSelectProperty.addListener(e -> {
-            displayChange = true;
-        });
+        useCustomPosition.onChange { _ : Boolean? -> isDisplayChange = true }
+
+        val availableScreens = getAvailableScreens(includeNone = custom)
+
+        val screenSelectProperty = SimpleObjectProperty(availableScreens.first())
+        val customControl = Field.ofSingleSelectionType(
+            SimpleListProperty(availableScreens),
+            screenSelectProperty
+        ).render(
+            SimpleComboBoxControl()
+        )
+
+        availableScreens.onChange { isDisplayChange = true }
+        screenSelectProperty.onChange { isDisplayChange = true }
 
         if (!custom) {
-            int screen = QueleaProperties.get().getControlScreen();
-            screenSelectProperty.setValue(screen > -1 && availableScreens.size() > screen
-                    ? availableScreens.get(screen) : availableScreens.get(0));
-            group = Group.of(groupName,
-                    Setting.of(groupName, customControl, screenSelectProperty).customKey(controlScreenKey)
-            );
+            val screen = get().controlScreen
+            screenSelectProperty.value = if (screen in 0 until availableScreens.size) availableScreens[screen]
+            else availableScreens.first()
+
+            group = Group.of(
+                groupName,
+                Setting.of(groupName, customControl, screenSelectProperty)
+                    .customKey(controlScreenKey)
+            )
         } else {
-            int screen;
-            Bounds bounds;
-            if (groupName.equals(LabelGrabber.INSTANCE.getLabel("projector.screen.label"))) {
-                screen = QueleaProperties.get().getProjectorScreen();
-                bounds = QueleaProperties.get().getProjectorCoords();
+            var screen: Int
+            val bounds: Bounds
+            if (groupName == LabelGrabber.INSTANCE.getLabel("projector.screen.label")) {
+                screen = get().projectorScreen
+                bounds = get().projectorCoords
             } else {
-                screen = QueleaProperties.get().getStageScreen();
-                bounds = QueleaProperties.get().getStageCoords();
+                screen = get().stageScreen
+                bounds = get().stageCoords
             }
 
-            IntegerProperty widthProperty = new SimpleIntegerProperty((int) bounds.getWidth());
-            IntegerProperty heightProperty = new SimpleIntegerProperty((int) bounds.getHeight());
-            IntegerProperty xProperty = new SimpleIntegerProperty((int) bounds.getMinX());
-            IntegerProperty yProperty = new SimpleIntegerProperty((int) bounds.getMinY());
-            IntegerField sizeWith = Field.ofIntegerType(widthProperty).render(
-                    new SimpleIntegerControl());
-            IntegerField sizeHeight = Field.ofIntegerType(heightProperty).render(
-                    new SimpleIntegerControl());
-            IntegerField posX = Field.ofIntegerType(xProperty).render(
-                    new SimpleIntegerControl());
-            IntegerField posY = Field.ofIntegerType(yProperty).render(
-                    new SimpleIntegerControl());
+            val widthProperty = SimpleIntegerProperty(bounds.width.toInt()).apply {
+                onChange { isDisplayChange = true }
+            }
+            val heightProperty = SimpleIntegerProperty(bounds.height.toInt()).apply {
+                onChange { isDisplayChange = true }
+            }
+            val xProperty = SimpleIntegerProperty(bounds.minX.toInt()).apply {
+                onChange { isDisplayChange = true }
+            }
+            val yProperty = SimpleIntegerProperty(bounds.minY.toInt()).apply {
+                onChange { isDisplayChange = true }
+            }
 
-            widthProperty.addListener(e -> {
-                displayChange = true;
-            });
+            val sizeWith = Field.ofIntegerType(widthProperty).render(
+                SimpleIntegerControl()
+            )
 
-            heightProperty.addListener(e -> {
-                displayChange = true;
-            });
+            val sizeHeight = Field.ofIntegerType(heightProperty).render(
+                SimpleIntegerControl()
+            )
+            val posX = Field.ofIntegerType(xProperty).render(
+                SimpleIntegerControl()
+            )
+            val posY = Field.ofIntegerType(yProperty).render(
+                SimpleIntegerControl()
+            )
 
-            xProperty.addListener(e -> {
-                displayChange = true;
-            });
 
-            yProperty.addListener(e -> {
-                displayChange = true;
-            });
 
-            screen++; // Compensate for "none" value in available screens
+            screen++ // Compensate for "none" value in available screens
+            screenSelectProperty.value = if (screen in 1 until availableScreens.size) availableScreens[screen] else availableScreens[0]
 
-            screenSelectProperty.setValue(screen > 0 && screen < availableScreens.size() ? availableScreens.get(screen) : availableScreens.get(0));
-            boolean projectorGroup = groupName.equals(LabelGrabber.INSTANCE.getLabel("projector.screen.label"));
-
-            group = Group.of(groupName,
-                    Setting.of(groupName, customControl, screenSelectProperty)
-                            .customKey(projectorGroup ? projectorScreenKey : stageScreenKey),
-                    Setting.of(LabelGrabber.INSTANCE.getLabel("custom.position.text"), useCustomPosition)
-                            .customKey(projectorGroup ? projectorModeKey : stageModeKey),
-                    Setting.of("W", sizeWith, widthProperty)
-                            .customKey(projectorGroup ? projectorWCoordKey : stageWCoordKey),
-                    Setting.of("H", sizeHeight, heightProperty)
-                            .customKey(projectorGroup ? projectorHCoordKey : stageHCoordKey),
-                    Setting.of("X", posX, xProperty)
-                            .customKey(projectorGroup ? projectorXCoordKey : stageXCoordKey),
-                    Setting.of("Y", posY, yProperty)
-                            .customKey(projectorGroup ? projectorYCoordKey : stageYCoordKey)
-            );
-
-            bindings.put(sizeWith, useCustomPosition.not());
-            bindings.put(sizeHeight, useCustomPosition.not());
-            bindings.put(posX, useCustomPosition.not());
-            bindings.put(posY, useCustomPosition.not());
-            bindings.put(customControl, useCustomPosition);
+            val projectorGroup = groupName == LabelGrabber.INSTANCE.getLabel("projector.screen.label")
+            group = Group.of(
+                groupName,
+                Setting.of(groupName, customControl, screenSelectProperty)
+                    .customKey(if (projectorGroup) projectorScreenKey else stageScreenKey),
+                Setting.of(LabelGrabber.INSTANCE.getLabel("custom.position.text"), useCustomPosition)
+                    .customKey(if (projectorGroup) projectorModeKey else stageModeKey),
+                Setting.of<IntegerField, IntegerProperty>("W", sizeWith, widthProperty)
+                    .customKey(if (projectorGroup) projectorWCoordKey else stageWCoordKey),
+                Setting.of<IntegerField, IntegerProperty>("H", sizeHeight, heightProperty)
+                    .customKey(if (projectorGroup) projectorHCoordKey else stageHCoordKey),
+                Setting.of<IntegerField, IntegerProperty>("X", posX, xProperty)
+                    .customKey(if (projectorGroup) projectorXCoordKey else stageXCoordKey),
+                Setting.of<IntegerField, IntegerProperty>("Y", posY, yProperty)
+                    .customKey(if (projectorGroup) projectorYCoordKey else stageYCoordKey)
+            )
+            bindings[sizeWith] = !useCustomPosition
+            bindings[sizeHeight] = !useCustomPosition
+            bindings[posX] = !useCustomPosition
+            bindings[posY] = !useCustomPosition
+            bindings[customControl] = useCustomPosition
         }
     }
-
 
     /**
      * Get a list model describing the available graphical devices.
      *
      * @return a list model describing the available graphical devices.
      */
-    private ObservableList<String> getAvailableScreens(boolean none) {
-        ObservableList<Screen> monitors = Screen.getScreens();
+    private fun getAvailableScreens(includeNone: Boolean): ObservableList<String> = observableListOf<String>().apply {
+        if (includeNone) this += LabelGrabber.INSTANCE.getLabel("none.text")
 
-        ObservableList<String> descriptions = FXCollections.observableArrayList();
-        if (none) {
-            descriptions.add(LabelGrabber.INSTANCE.getLabel("none.text"));
+        Screen.getScreens().indices.mapTo(this) {
+            LabelGrabber.INSTANCE.getLabel("output.text") + " " + (it + 1)
         }
-        for (int i = 0; i < monitors.size(); i++) {
-            descriptions.add(LabelGrabber.INSTANCE.getLabel("output.text") + " " + (i + 1));
-        }
-        return descriptions;
-    }
-
-    public boolean isDisplayChange() {
-        return displayChange;
-    }
-
-    public void setDisplayChange(boolean displayChange) {
-        this.displayChange = displayChange;
-    }
-
-    public Group getGroup() {
-        return group;
     }
 }
