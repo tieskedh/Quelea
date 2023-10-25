@@ -15,527 +15,464 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main;
+package org.quelea.windows.main
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.scene.Node;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.TransferMode;
-import javafx.scene.layout.BorderPane;
-import org.quelea.data.displayable.AudioDisplayable;
-import org.quelea.data.displayable.Displayable;
-import org.quelea.data.displayable.ImageDisplayable;
-import org.quelea.data.displayable.ImageGroupDisplayable;
-import org.quelea.data.displayable.MultimediaDisplayable;
-import org.quelea.data.displayable.PdfDisplayable;
-import org.quelea.data.displayable.PresentationDisplayable;
-import org.quelea.data.displayable.SongDisplayable;
-import org.quelea.data.displayable.TextDisplayable;
-import org.quelea.data.displayable.TimerDisplayable;
-import org.quelea.data.displayable.VideoDisplayable;
-import org.quelea.data.displayable.WebDisplayable;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.Utils;
-import org.quelea.windows.image.ImagePanel;
-import org.quelea.windows.imagegroup.ImageGroupPanel;
-import org.quelea.windows.lyrics.SelectLyricsPanel;
-import org.quelea.windows.main.quickedit.QuickEditDialog;
-import org.quelea.windows.main.widgets.CardPane;
-import org.quelea.windows.multimedia.MultimediaPanel;
-import org.quelea.windows.pdf.PdfPanel;
-import org.quelea.windows.timer.TimerPanel;
-import org.quelea.windows.presentation.PresentationPanel;
-import org.quelea.windows.web.WebPanel;
+import javafx.scene.Node
+import javafx.scene.input.*
+import javafx.scene.layout.BorderPane
+import org.quelea.data.displayable.*
+import org.quelea.services.utils.LoggerUtils
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.checkFXThread
+import org.quelea.windows.image.ImagePanel
+import org.quelea.windows.imagegroup.ImageGroupPanel
+import org.quelea.windows.lyrics.SelectLyricsPanel
+import org.quelea.windows.main.quickedit.QuickEditDialog
+import org.quelea.windows.main.widgets.CardPane
+import org.quelea.windows.multimedia.MultimediaPanel
+import org.quelea.windows.pdf.PdfPanel
+import org.quelea.windows.presentation.PresentationPanel
+import org.quelea.windows.timer.TimerPanel
+import org.quelea.windows.web.WebPanel
+import java.util.logging.Level
 
 /**
  * The common superclass of the live / preview panels used for selecting the
  * lyrics / picture.
- * <p/>
+ *
+ *
  *
  * @author Michael
  */
-public abstract class LivePreviewPanel extends BorderPane {
+abstract class LivePreviewPanel : BorderPane() {
+    private val windows: MutableSet<DisplayStage> = HashSet()
 
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final Set<DisplayStage> windows = new HashSet<>();
-    private Displayable displayable;
-    private final CardPane<AbstractPanel> cardPanel = new CardPane<>();
-    private static final String LYRICS_LABEL = "LYRICS";
-    private static final String IMAGE_LABEL = "IMAGE";
-    private static final String VIDEO_LABEL = "VIDEO";
-    private static final String TIMER_LABEL = "TIMER";
-    private static final String AUDIO_LABEL = "AUDIO";
-    private static final String PRESENTATION_LABEL = "PPT";
-    private static final String PDF_LABEL = "PDF";
-    private static final String WEB_LABEL = "WEB";
-    private static final String IMAGE_GROUP_LABEL = "IMAGE_GROUP";
-    private String currentLabel;
-    private SelectLyricsPanel lyricsPanel = new SelectLyricsPanel(this);
-    private final ImagePanel imagePanel = new ImagePanel();
-    private final PresentationPanel presentationPanel = new PresentationPanel(this);
-    private final PdfPanel pdfPanel = new PdfPanel(this);
-    private final MultimediaPanel videoPanel = new MultimediaPanel();
-    private final MultimediaPanel audioPanel = new MultimediaPanel();
-    private final TimerPanel timerPanel = new TimerPanel();
-    private final WebPanel webPanel = new WebPanel();
-    private final ImageGroupPanel imageGroupPanel = new ImageGroupPanel(this);
-    private final QuickEditDialog quickEditDialog = new QuickEditDialog();
+    /**
+     * Get the displayable currently being displayed, or null if there isn't
+     * one.
+     *
+     *
+     *
+     * @return the current displayable.
+     */
+    var displayable: Displayable? = null
+        private set
+
+    private val cardPanel = CardPane<AbstractPanel>()
+    private var currentLabel: String? = null
+
+    /**
+     * Get the select lyrics panel on this panel.
+     *
+     *
+     *
+     * @return the select lyrics panel.
+     */
+    val lyricsPanel = SelectLyricsPanel(this)
+    private val imagePanel = ImagePanel()
+
+    /**
+     * Get the presentation panel on this live / preview panel.
+     *
+     *
+     *
+     * @return the presentation panel.
+     */
+    val presentationPanel = PresentationPanel(this)
+
+    /**
+     * Get the PDF panel on this live / preview panel.
+     *
+     *
+     *
+     * @return the PDF panel.
+     */
+    val pdfPanel = PdfPanel(this)
+
+    /**
+     * Get the video panel on this live / preview panel.
+     *
+     *
+     *
+     * @return the presentation panel.
+     */
+    val videoPanel = MultimediaPanel()
+    private val audioPanel = MultimediaPanel()
+
+    /**
+     * Get the timer panel.
+     *
+     *
+     *
+     * @return the timer panel.
+     */
+    val timerPanel = TimerPanel()
+
+    /**
+     * Get the web panel.
+     *
+     *
+     *
+     * @return the web panel.
+     */
+    val webPanel = WebPanel()
+
+    /**
+     * Get the image group panel on this live / preview panel.
+     *
+     *
+     *
+     * @return the image group panel.
+     */
+
+    val imageGroupPanel = ImageGroupPanel(this)
+    private val quickEditDialog = QuickEditDialog()
 
     /**
      * Create the live preview panel, common superclass of live and preview
      * panels.
      */
-    public LivePreviewPanel() {
-        setCenter(cardPanel);
-        cardPanel.add(lyricsPanel, LYRICS_LABEL);
-        cardPanel.add(imagePanel, IMAGE_LABEL);
-        cardPanel.add(videoPanel, VIDEO_LABEL);
-        cardPanel.add(timerPanel, TIMER_LABEL);
-        cardPanel.add(audioPanel, AUDIO_LABEL);
-        cardPanel.add(presentationPanel, PRESENTATION_LABEL);
-        cardPanel.add(pdfPanel, PDF_LABEL);
-        cardPanel.add(webPanel, WEB_LABEL);
-        cardPanel.add(imageGroupPanel, IMAGE_GROUP_LABEL);
-        cardPanel.show(LYRICS_LABEL);
-        lyricsPanel.getLyricsList().setOnMouseClicked(me -> {
-            if (me.isControlDown() || me.isShiftDown()) {
-                doQuickEdit(lyricsPanel.getLyricsList().getQuickEditIndex());
-            }
-        });
+    init {
+        center = cardPanel
+        cardPanel[LYRICS_LABEL] = lyricsPanel
+        cardPanel[IMAGE_LABEL] = imagePanel
+        cardPanel[VIDEO_LABEL] = videoPanel
+        cardPanel[TIMER_LABEL] = timerPanel
+        cardPanel[AUDIO_LABEL] = audioPanel
+        cardPanel[PRESENTATION_LABEL] = presentationPanel
+        cardPanel[PDF_LABEL] = pdfPanel
+        cardPanel[WEB_LABEL] = webPanel
+        cardPanel[IMAGE_GROUP_LABEL] = imageGroupPanel
+        cardPanel.show(LYRICS_LABEL)
 
-        lyricsPanel.getLyricsList().setOnKeyPressed(ke -> {
-            if (ke.isControlDown() && ke.getCode() == KeyCode.Q) {
-                doQuickEdit(lyricsPanel.getCurrentIndex());
-            }
-        });
-        presentationPanel.buildLoopTimeline();
-        setOnDragOver(event -> {
-            if (event.getDragboard().getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT) != null) {
-                event.acceptTransferModes(TransferMode.ANY);
-            }
-        });
-        setOnDragDropped(event -> {
-            if (event.getDragboard().getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT) instanceof SongDisplayable) {
-                final SongDisplayable displayable = (SongDisplayable) event.getDragboard().getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT);
-                if (displayable != null) {
-                    setDisplayable(displayable, 0);
-                }
-            }
-            event.consume();
-        });
-    }
 
-    public void selectFirstLyric() {
-        if (LYRICS_LABEL.equals(currentLabel)) {
-            lyricsPanel.selectFirst();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.selectFirst();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.selectFirst();
+        lyricsPanel.lyricsList.setOnMouseClicked { me: MouseEvent ->
+            if (me.isControlDown || me.isShiftDown)
+                doQuickEdit(lyricsPanel.lyricsList.quickEditIndex)
+        }
+        lyricsPanel.lyricsList.setOnKeyPressed { ke: KeyEvent ->
+            if (ke.isControlDown && ke.code == KeyCode.Q) {
+                doQuickEdit(lyricsPanel.currentIndex)
+            }
+        }
+        presentationPanel.buildLoopTimeline()
+        setOnDragOver { event: DragEvent ->
+            if (event.dragboard.getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT) != null) {
+                event.acceptTransferModes(*TransferMode.ANY)
+            }
+        }
+        setOnDragDropped { event: DragEvent ->
+            if (event.dragboard.getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT) is SongDisplayable) {
+                val displayable =
+                    event.dragboard.getContent(SongDisplayable.SONG_DISPLAYABLE_FORMAT) as? SongDisplayable
+                if (displayable != null) setDisplayable(displayable, 0)
+            }
+            event.consume()
         }
     }
 
-    public void selectLastLyric() {
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            presentationPanel.selectLast();
-        } else if (LYRICS_LABEL.equals(currentLabel)) {
-            lyricsPanel.selectLast();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.selectLast();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.selectLast();
+    fun selectFirstLyric() {
+        when (currentLabel) {
+            LYRICS_LABEL -> lyricsPanel.selectFirst()
+            PDF_LABEL -> pdfPanel.selectFirst()
+            IMAGE_GROUP_LABEL -> imageGroupPanel.selectFirst()
         }
     }
 
-    /**
-     * Get the video panel on this live / preview panel.
-     * <p/>
-     *
-     * @return the presentation panel.
-     */
-    public MultimediaPanel getVideoPanel() {
-        return videoPanel;
-    }
-
-    /**
-     * Get the presentation panel on this live / preview panel.
-     * <p/>
-     *
-     * @return the presentation panel.
-     */
-    public PresentationPanel getPresentationPanel() {
-        return presentationPanel;
-    }
-
-    /**
-     * Get the PDF panel on this live / preview panel.
-     * <p/>
-     *
-     * @return the PDF panel.
-     */
-    public PdfPanel getPdfPanel() {
-        return pdfPanel;
-    }
-
-    /**
-     * Get the image group panel on this live / preview panel.
-     * <p/>
-     *
-     * @return the image group panel.
-     */
-    public ImageGroupPanel getImageGroupPanel() {
-        return imageGroupPanel;
+    fun selectLastLyric() {
+        when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.selectLast()
+            LYRICS_LABEL -> lyricsPanel.selectLast()
+            PDF_LABEL -> pdfPanel.selectLast()
+            IMAGE_GROUP_LABEL -> imageGroupPanel.selectLast()
+        }
     }
 
     /**
      * Perform a quick edit on the given index.
-     * <p/>
+     *
+     *
      *
      * @param index the index on which to perform the quick edit.
      */
-    public void doQuickEdit(int index) {
-        if (displayable instanceof SongDisplayable) {
-            SongDisplayable song = (SongDisplayable) displayable;
-            quickEditDialog.setSongSection(song, index);
-            quickEditDialog.show();
-            setDisplayable(song, getIndex());
+    fun doQuickEdit(index: Int) {
+        (displayable as? SongDisplayable)?.let { song ->
+            quickEditDialog.apply {
+                setSongSection(song, index)
+                show()
+            }
+            setDisplayable(song, this.index)
         }
     }
 
     /**
      * Update the one line mode for the lyrics panel from the properties file.
      */
-    public void updateOneLineMode() {
-        lyricsPanel.setOneLineMode(QueleaProperties.get().getOneLineMode());
-    }
+    fun updateOneLineMode() = lyricsPanel.setOneLineMode(get().oneLineMode)
 
     /**
      * Get the container panel (the one using the cardlayout that flips between
      * the various available panels.
-     * <p/>
+     *
+     *
      *
      * @return the container panel.
      */
-    public Node getCurrentPane() {
-        return cardPanel.getCurrentPane();
-    }
+    val currentPane: Node?
+        get() = cardPanel.currentPane
+
 
     /**
      * Clear all the contained panels to a null displayable.
      */
-    public void removeDisplayable() {
-        displayable = null;
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            presentationPanel.showDisplayable(null, 0);
+    open fun removeDisplayable() {
+        displayable = null
+        when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.showDisplayable(null, 0)
+            PDF_LABEL -> pdfPanel.showDisplayable(null, 0)
+            IMAGE_GROUP_LABEL -> imageGroupPanel.showDisplayable(null, 0)
+            VIDEO_LABEL -> videoPanel.showDisplayable(null, 0)
+            WEB_LABEL -> webPanel.showDisplayable(null as WebDisplayable?)
         }
-        if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.showDisplayable(null, 0);
+
+        for (panel in cardPanel) {
+            panel.removeCurrentDisplayable()
         }
-        if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.showDisplayable(null, 0);
-        }
-        if (VIDEO_LABEL.equals(currentLabel)) {
-            videoPanel.showDisplayable(null, 0);
-        }
-        if (WEB_LABEL.equals(currentLabel)) {
-            webPanel.showDisplayable((WebDisplayable) null);
-        }
-        for (Node panel : cardPanel) {
-            if (panel instanceof ContainedPanel) {
-                ((ContainedPanel) panel).removeCurrentDisplayable();
-            } else {
-                LOGGER.log(Level.WARNING, "Panel was {0} which isn't a ContainedPanel... can't clear it.", panel.getClass());
-            }
-        }
-        if (currentLabel == null || !currentLabel.equals(LYRICS_LABEL)) {
-            cardPanel.show(LYRICS_LABEL);
-            currentLabel = LYRICS_LABEL;
+
+        currentLabel?.takeUnless { it ==  LYRICS_LABEL }?.let {
+            cardPanel.show(it)
+            currentLabel = it
         }
     }
+    /**
+     * The currently selected displayable index.
+     * Only suitable for powerpoint / PDF / image group / lyrics panels.
+     */
+    val index: Int
+        get() = when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.index
+            PDF_LABEL -> pdfPanel.index
+            IMAGE_GROUP_LABEL -> imageGroupPanel.index
+            else -> lyricsPanel.index
+        }
 
     /**
-     * Get the currently selected displayable index. Only suitable for
-     * powerpoint / PDF / image group / lyrics panels.
-     * <p/>
-     *
-     * @return the currently selected displayable index.
+     * The length of the current displayable.
+     * Only suitable for powerpoint / PDF / image group / lyrics panels.
      */
-    public int getIndex() {
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            return presentationPanel.getIndex();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            return pdfPanel.getIndex();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            return imageGroupPanel.getIndex();
-        } else {
-            return lyricsPanel.getIndex();
+    val lenght: Int
+        get() = when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.slideCount
+            PDF_LABEL -> pdfPanel.slideCount
+            IMAGE_GROUP_LABEL -> imageGroupPanel.slideCount
+            else -> lyricsPanel.slideCount
         }
-    }
-
-    /**
-     * Get the length of the current displayable. Only suitable for
-     * powerpoint / PDF / image group / lyrics panels.
-     * <p/>
-     *
-     * @return the currently selected displayable index.
-     */
-
-    public int getLenght() {
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            return presentationPanel.getSlideCount();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            return pdfPanel.getSlideCount();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            return imageGroupPanel.getSlideCount();
-        } else {
-            return lyricsPanel.getSlideCount();
-        }
-    }
 
     /**
      * Advances currently selected displayable index. Only suitable for
      * powerpoint / lyrics panels.
-     * <p/>
+     *
+     *
      */
-    public void advance() {
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            presentationPanel.advance();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.advance();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.advance();
-        } else if (LYRICS_LABEL.equals(currentLabel)) {
-            lyricsPanel.advance();
-        } else if (IMAGE_LABEL.equals(currentLabel)) {
-            imagePanel.advance();
-        } else if (VIDEO_LABEL.equals(currentLabel)) {
-            videoPanel.advance();
-        } else if (TIMER_LABEL.equals(currentLabel)) {
-            timerPanel.advance();
-        } else if (WEB_LABEL.equals(currentLabel)) {
-            webPanel.advance();
+    fun advance() {
+        when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.advance()
+            PDF_LABEL -> pdfPanel.advance()
+            IMAGE_GROUP_LABEL -> imageGroupPanel.advance()
+            LYRICS_LABEL -> lyricsPanel.advance()
+            IMAGE_LABEL -> imagePanel.advance()
+            VIDEO_LABEL -> videoPanel.advance()
+            TIMER_LABEL -> timerPanel.advance()
+            WEB_LABEL -> webPanel.advance()
         }
     }
 
     /**
      * Moves to previous slide in currently selected displayable index. Only
      * suitable for powerpoint / lyrics panels.
-     * <p/>
-     */
-    public void previous() {
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            presentationPanel.previous();
-        } else if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.previous();
-        } else if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.previous();
-        } else if (LYRICS_LABEL.equals(currentLabel)) {
-            lyricsPanel.previous();
-        } else if (IMAGE_LABEL.equals(currentLabel)) {
-            imagePanel.previous();
-        } else if (VIDEO_LABEL.equals(currentLabel)) {
-            videoPanel.previous();
-        } else if (TIMER_LABEL.equals(currentLabel)) {
-            timerPanel.previous();
-        } else if (WEB_LABEL.equals(currentLabel)) {
-            webPanel.previous();
-        }
-    }
-
-    /**
-     * Get the select lyrics panel on this panel.
-     * <p/>
      *
-     * @return the select lyrics panel.
+     *
      */
-    public SelectLyricsPanel getLyricsPanel() {
-        return lyricsPanel;
+    fun previous() {
+        when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.previous()
+            PDF_LABEL -> pdfPanel.previous()
+            IMAGE_GROUP_LABEL -> imageGroupPanel.previous()
+            LYRICS_LABEL -> lyricsPanel.previous()
+            IMAGE_LABEL -> imagePanel.previous()
+            VIDEO_LABEL -> videoPanel.previous()
+            TIMER_LABEL -> timerPanel.previous()
+            WEB_LABEL -> webPanel.previous()
+        }
     }
 
     /**
      * Set the displayable shown on this panel.
-     * <p/>
+     *
+     *
      *
      * @param displayable the displayable to show.
      * @param index       the index of the displayable to show, if relevant.
      */
-    public void setDisplayable(final Displayable displayable, final int index) {
-        Utils.checkFXThread();
-        if (!(this.displayable instanceof TextDisplayable && displayable instanceof TextDisplayable)) {
-            lyricsPanel.removeCurrentDisplayable();
+    open fun setDisplayable(displayable: Displayable?, index: Int) {
+        checkFXThread()
+
+        if (!(this.displayable is TextDisplayable && displayable is TextDisplayable)) {
+            lyricsPanel.removeCurrentDisplayable()
         }
 
-        QueleaApp.get().getMainWindow().getMainPanel().getSchedulePanel().getScheduleList().getListView().refresh();
+        QueleaApp.get().mainWindow.mainPanel.schedulePanel.scheduleList.listView.refresh()
+        this.displayable = displayable
+        presentationPanel.stopCurrent()
+        pdfPanel.stopCurrent()
+        imageGroupPanel.stopCurrent()
+        videoPanel.stopCurrent()
+        audioPanel.removeCurrentDisplayable()
+        videoPanel.removeCurrentDisplayable()
+        timerPanel.removeCurrentDisplayable()
+        imagePanel.removeCurrentDisplayable()
+        presentationPanel.removeCurrentDisplayable()
+        pdfPanel.removeCurrentDisplayable()
+        webPanel.removeCurrentDisplayable()
+        imageGroupPanel.removeCurrentDisplayable()
 
-        this.displayable = displayable;
-        presentationPanel.stopCurrent();
-        pdfPanel.stopCurrent();
-        imageGroupPanel.stopCurrent();
-        videoPanel.stopCurrent();
+        when (currentLabel) {
+            PRESENTATION_LABEL -> presentationPanel.showDisplayable(null, 0)
+            PDF_LABEL -> pdfPanel.showDisplayable(null, 0)
+            IMAGE_GROUP_LABEL -> imageGroupPanel.showDisplayable(null, 0)
+            VIDEO_LABEL -> videoPanel.showDisplayable(null, 0)
+            WEB_LABEL -> webPanel.showDisplayable(null as WebDisplayable?)
+        }
 
-        audioPanel.removeCurrentDisplayable();
-        videoPanel.removeCurrentDisplayable();
-        timerPanel.removeCurrentDisplayable();
-        imagePanel.removeCurrentDisplayable();
-        presentationPanel.removeCurrentDisplayable();
-        pdfPanel.removeCurrentDisplayable();
-        webPanel.removeCurrentDisplayable();
-        imageGroupPanel.removeCurrentDisplayable();
-        if (PRESENTATION_LABEL.equals(currentLabel)) {
-            presentationPanel.showDisplayable(null, 0);
-        }
-        if (PDF_LABEL.equals(currentLabel)) {
-            pdfPanel.showDisplayable(null, 0);
-        }
-        if (IMAGE_GROUP_LABEL.equals(currentLabel)) {
-            imageGroupPanel.showDisplayable(null, 0);
-        }
-        if (VIDEO_LABEL.equals(currentLabel)) {
-            videoPanel.showDisplayable(null, 0);
-        }
-        if (WEB_LABEL.equals(currentLabel)) {
-            webPanel.showDisplayable((WebDisplayable) null);
-        }
-        if (displayable instanceof TextDisplayable) {
-            lyricsPanel.showDisplayable((TextDisplayable) displayable, index);
-            cardPanel.show(LYRICS_LABEL);
-            currentLabel = LYRICS_LABEL;
-        } else if (displayable instanceof ImageDisplayable) {
-            imagePanel.showDisplayable((ImageDisplayable) displayable);
-            cardPanel.show(IMAGE_LABEL);
-            currentLabel = IMAGE_LABEL;
-        } else if (displayable instanceof VideoDisplayable) {
-            videoPanel.showDisplayable((MultimediaDisplayable) displayable, index);
-            cardPanel.show(VIDEO_LABEL);
-            currentLabel = VIDEO_LABEL;
-            if (QueleaProperties.get().getAutoPlayVideo() && LivePreviewPanel.this instanceof LivePanel) {
-                videoPanel.play();
+        when (displayable) {
+            is TextDisplayable -> {
+                lyricsPanel.showDisplayable(displayable as TextDisplayable?, index)
+                cardPanel.show(LYRICS_LABEL)
+                currentLabel = LYRICS_LABEL
             }
-        } else if (displayable instanceof TimerDisplayable) {
-            timerPanel.showDisplayable((MultimediaDisplayable) displayable);
-            cardPanel.show(TIMER_LABEL);
-            currentLabel = TIMER_LABEL;
-            if (LivePreviewPanel.this instanceof LivePanel) {
-                timerPanel.play();
+
+            is ImageDisplayable -> {
+                imagePanel.showDisplayable(displayable as ImageDisplayable?)
+                cardPanel.show(IMAGE_LABEL)
+                currentLabel = IMAGE_LABEL
             }
-        } else if (displayable instanceof AudioDisplayable) {
-            audioPanel.showDisplayable((MultimediaDisplayable) displayable);
-            cardPanel.show(AUDIO_LABEL);
-            currentLabel = AUDIO_LABEL;
-        } else if (displayable instanceof PresentationDisplayable) {
-            presentationPanel.showDisplayable((PresentationDisplayable) displayable, index);
-            cardPanel.show(PRESENTATION_LABEL);
-            currentLabel = PRESENTATION_LABEL;
-        } else if (displayable instanceof PdfDisplayable) {
-            pdfPanel.showDisplayable((PdfDisplayable) displayable, index);
-            cardPanel.show(PDF_LABEL);
-            currentLabel = PDF_LABEL;
-        } else if (displayable instanceof WebDisplayable) {
-            webPanel.showDisplayable((WebDisplayable) displayable);
-            cardPanel.show(WEB_LABEL);
-            currentLabel = WEB_LABEL;
-            webPanel.setText();
-        } else if (displayable instanceof ImageGroupDisplayable) {
-            imageGroupPanel.showDisplayable((ImageGroupDisplayable) displayable, index);
-            cardPanel.show(IMAGE_GROUP_LABEL);
-            currentLabel = IMAGE_GROUP_LABEL;
-        } else if (displayable == null) {
-//            LOGGER.log(Level.WARNING, "BUG: Called showDisplayable(null), should probably call clear() instead.", 
-//                    new RuntimeException("BUG: Called showDisplayable(null), should probably call clear() instead.")); clear();
-        } else {
-            throw new RuntimeException("Displayable type not implemented: " + displayable.getClass());
+
+            is VideoDisplayable -> {
+                videoPanel.showDisplayable(displayable as MultimediaDisplayable?, index)
+                cardPanel.show(VIDEO_LABEL)
+                currentLabel = VIDEO_LABEL
+                if (get().autoPlayVideo && this@LivePreviewPanel is LivePanel) {
+                    videoPanel.play()
+                }
+            }
+
+            is TimerDisplayable -> {
+                timerPanel.showDisplayable(displayable as MultimediaDisplayable?)
+                cardPanel.show(TIMER_LABEL)
+                currentLabel = TIMER_LABEL
+                if (this@LivePreviewPanel is LivePanel) {
+                    timerPanel.play()
+                }
+            }
+
+            is AudioDisplayable -> {
+                audioPanel.showDisplayable(displayable as MultimediaDisplayable?)
+                cardPanel.show(AUDIO_LABEL)
+                currentLabel = AUDIO_LABEL
+            }
+
+            is PresentationDisplayable -> {
+                presentationPanel.showDisplayable(displayable as PresentationDisplayable?, index)
+                cardPanel.show(PRESENTATION_LABEL)
+                currentLabel = PRESENTATION_LABEL
+            }
+
+            is PdfDisplayable -> {
+                pdfPanel.showDisplayable(displayable as PdfDisplayable?, index)
+                cardPanel.show(PDF_LABEL)
+                currentLabel = PDF_LABEL
+            }
+
+            is WebDisplayable -> {
+                webPanel.showDisplayable(displayable as WebDisplayable?)
+                cardPanel.show(WEB_LABEL)
+                currentLabel = WEB_LABEL
+                webPanel.setText()
+            }
+
+            is ImageGroupDisplayable -> {
+                imageGroupPanel.showDisplayable(displayable as ImageGroupDisplayable?, index)
+                cardPanel.show(IMAGE_GROUP_LABEL)
+                currentLabel = IMAGE_GROUP_LABEL
+            }
+
+            null -> {
+    //            LOGGER.log(Level.WARNING, "BUG: Called showDisplayable(null), should probably call clear() instead.",
+    //                    new RuntimeException("BUG: Called showDisplayable(null), should probably call clear() instead.")); clear();
+            }
+
+            else -> throw RuntimeException("Displayable type not implemented: " + displayable.javaClass)
         }
     }
 
     /**
      * Refresh the current content of this panel, if any exists.
      */
-    public void refresh() {
-        if (getDisplayable() != null) {
-            setDisplayable(getDisplayable(), getIndex());
+    fun refresh() {
+        displayable?.let {
+            setDisplayable(it, index)
         }
-    }
-
-    /**
-     * Get the displayable currently being displayed, or null if there isn't
-     * one.
-     * <p/>
-     *
-     * @return the current displayable.
-     */
-    public Displayable getDisplayable() {
-        return displayable;
     }
 
     /**
      * Register a display canvas with this lyrics panel.
-     * <p/>
      *
      * @param canvas the canvas to register.
      */
-    public final void registerDisplayCanvas(final DisplayCanvas canvas) {
-        if (canvas == null) {
-            return;
-        }
-        for (AbstractPanel panel : cardPanel.getPanels()) {
-            panel.registerDisplayCanvas(canvas);
+    fun registerDisplayCanvas(canvas: DisplayCanvas?) {
+        if (canvas == null) return
+
+        for (panel in cardPanel.panels) {
+            panel.registerDisplayCanvas(canvas)
         }
     }
 
     /**
      * Register a display window with this lyrics panel.
-     * <p/>
      *
      * @param window the window to register.
      */
-    public final void registerDisplayWindow(final DisplayStage window) {
-        if (window == null) {
-            return;
-        }
-        windows.add(window);
+    fun registerDisplayWindow(window: DisplayStage?) {
+        if (window == null) return
+        windows.add(window)
     }
-
     /**
      * Get the canvases registered to this panel.
-     * <p/>
      *
      * @return the canvases.
      */
-    public Set<DisplayCanvas> getCanvases() {
-        return ((AbstractPanel) getCurrentPane()).getCanvases();
-    }
+    val canvases: Set<DisplayCanvas>
+        get() = (currentPane as AbstractPanel).canvases
 
     /**
      * Get the windows registered to this panel.
-     * <p/>
+     *
+     *
      *
      * @return the windows.
      */
-    public Set<DisplayStage> getWindows() {
-        return windows;
-    }
+    fun getWindows(): Set<DisplayStage> = windows
 
-    /**
-     * Get the timer panel.
-     * <p/>
-     *
-     * @return the timer panel.
-     */
-    public TimerPanel getTimerPanel() {
-        return timerPanel;
-    }
-
-    /**
-     * Get the web panel.
-     * <p/>
-     *
-     * @return the web panel.
-     */
-    public WebPanel getWebPanel() {
-        return webPanel;
+    companion object {
+        private val LOGGER = LoggerUtils.getLogger()
+        private const val LYRICS_LABEL = "LYRICS"
+        private const val IMAGE_LABEL = "IMAGE"
+        private const val VIDEO_LABEL = "VIDEO"
+        private const val TIMER_LABEL = "TIMER"
+        private const val AUDIO_LABEL = "AUDIO"
+        private const val PRESENTATION_LABEL = "PPT"
+        private const val PDF_LABEL = "PDF"
+        private const val WEB_LABEL = "WEB"
+        private const val IMAGE_GROUP_LABEL = "IMAGE_GROUP"
     }
 }
