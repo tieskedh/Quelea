@@ -15,86 +15,78 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.widgets;
+package org.quelea.windows.main.widgets
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import javafx.scene.Node;
-import javafx.scene.layout.StackPane;
+import javafx.scene.Node
+import javafx.scene.layout.StackPane
 
 /**
  * Emulates (sort of) a swing card layout - JavaFX doesn't have one but we can
  * trivially create one out of a StackPane.
- * <p/>
+ *
+ *
  * @author Michael
  */
-public class CardPane<T extends Node> extends StackPane implements Iterable<T> {
-
-    private HashMap<String, T> items = new HashMap<>();
-    private T currentPane = null;
+class CardPane<T : Node> : StackPane(), Iterable<T> {
+    private val items = HashMap<String, T>()
+    /**
+     * The current panel being shown, or null if none is shown.
+     */
+    var currentPane: T? = null
+        private set
 
     /**
      * Add a node to this card pane.
-     * <p/>
+     *
+     *
      * @param node the node to add.
      * @param label the label used for selecting this node.
      */
-    public void add(T node, String label) {
-        items.put(label, node);
-        node.setVisible(false);
-        getChildren().add(node);
+    fun add(node: T, label: String) {
+        items[label] = node
+        node.isVisible = false
+        children.add(node)
     }
+
+    operator fun set(label: String, node: T) = add(node, label)
+    operator fun minusAssign(label: String) = remove(label)
 
     /**
      * Remove a node on this card pane.
-     * <p/>
+     *
+     *
      * @param label the label of the node to remove.
      */
-    public void remove(String label) {
-        getChildren().remove(items.get(label));
-        items.remove(label);
+    fun remove(label: String) {
+        children.remove(items[label])
+        items.remove(label)
     }
+
 
     /**
      * Get all the panels currently on the card pane.
-     * <p/>
+     *
+     *
      * @return
      */
-    public Collection<T> getPanels() {
-        return items.values();
-    }
+    val panels: MutableCollection<T>
+        get() = items.values
 
     /**
      * Show the node with the given label.
-     * <p/>
+     *
+     *
      * @param label the label whose node to show.
      * @throws IllegalArgumentException if the label isn't valid.
      */
-    public void show(String label) {
-        for(T node : items.values()) {
-            node.setVisible(false);
+    fun show(label: String) {
+        for (node in items.values) {
+            node.isVisible = false
         }
-        currentPane = items.get(label);
-        if(currentPane == null) {
-            throw new IllegalArgumentException("Label " + label + " doesn't exist in this card pane!");
-        }
-        else {
-            currentPane.setVisible(true);
+        currentPane = items.getValue(label).also {
+            it.isVisible = true
         }
     }
 
-    /**
-     * Get the current panel being shown.
-     * <p/>
-     * @return the currently shown panel, or null if none is being shown.
-     */
-    public Node getCurrentPane() {
-        return currentPane;
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-        return getPanels().iterator();
-    }
+    override fun iterator(): MutableIterator<T> = panels.iterator()
 }
