@@ -15,218 +15,184 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.services.importexport;
+package org.quelea.services.importexport
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Control;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import org.quelea.data.displayable.SongDisplayable;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
+import javafx.geometry.Insets
+import javafx.geometry.Pos
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.*
+import javafx.stage.Modality
+import javafx.stage.Stage
+import org.quelea.data.displayable.SongDisplayable
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import tornadofx.*
 
 /**
  * A dialog where given songs can be selected.
- * <p/>
+ *
+ * @constructor Create a new imported songs dialog.
+ * @param text a list of lines to be shown in the dialog.
+ * @param acceptText text to place on the accept button.
  * @author Michael
  */
-public class SelectSongsDialog extends Stage {
-
-    private final Button addButton;
-    private final CheckBox selectAllCheckBox;
-    private final GridPane gridPane;
-    private List<SongDisplayable> songs;
-    private final List<CheckBox> checkBoxes;
-    private final ScrollPane gridScroll;
-
+open class SelectSongsDialog(text: Array<String?>, acceptText: String?) : Stage() {
     /**
-     * Create a new imported songs dialog.
-     * <p/>
-     * @param text a list of lines to be shown in the dialog.
-     * @param acceptText text to place on the accpet button.
-     * @param checkboxText text to place in the column header for the
-     * checkboxes.
+     * Get the add button.
+     *
+     *
+     * @return the add button.
      */
-    public SelectSongsDialog(String[] text, String acceptText, String checkboxText) {
-        initModality(Modality.APPLICATION_MODAL);
-        setTitle(LabelGrabber.INSTANCE.getLabel("select.songs.title"));
+    lateinit var addButton: Button
+    private lateinit var selectAllCheckBox: CheckBox
+    private lateinit var gridPane: GridPane
+    private var songs: List<SongDisplayable>? = null
+    private val checkBoxes = mutableListOf<CheckBox>()
+    private val gridScroll: ScrollPane
 
-        checkBoxes = new ArrayList<>();
-        selectAllCheckBox = new CheckBox();
-        selectAllCheckBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
+    init {
+        initModality(Modality.APPLICATION_MODAL)
+        title = LabelGrabber.INSTANCE.getLabel("select.songs.title")
 
-            @Override
-            public void changed(ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) {
-                for(CheckBox checkBox : checkBoxes) {
-                    checkBox.setSelected(t1);
+        val mainPanel = VBox(5.0).apply {
+            vbox {
+                vboxConstraints { margin = Insets(10.0) }
+                text.mapTo(children, ::Label)
+            }
+
+            gridScroll = scrollpane {
+                vboxConstraints { vgrow = Priority.ALWAYS }
+
+                isFitToWidth = true
+                isFitToHeight = true
+
+                stackpane {
+                    vbox(10) {
+                        stackpaneConstraints { margin = Insets(10.0) }
+
+                        hbox(5) {
+                            selectAllCheckBox = checkbox {
+                                selectedProperty().onChange { selected ->
+                                    checkBoxes.forEach { it.isSelected = selected }
+                                }
+                            }
+
+                            label(LabelGrabber.INSTANCE.getLabel("check.uncheck.all.text")) {
+                                style = "-fx-font-weight: bold;"
+                            }
+                        }
+
+                        gridPane = gridpane {
+                            hgap = 5.0
+                            vgap = 5.0
+                        }
+                    }
                 }
             }
-        });
 
-        VBox mainPanel = new VBox(5);
-        VBox textBox = new VBox();
-        for(String str : text) {
-            textBox.getChildren().add(new Label(str));
+            stackpane {
+                vboxConstraints { margin = Insets(10.0) }
+                addButton = button(acceptText.orEmpty(), ImageView(Image("file:icons/tick.png")))
+            }
         }
-        VBox.setMargin(textBox, new Insets(10));
-        mainPanel.getChildren().add(textBox);
-        gridPane = new GridPane();
-        gridPane.setHgap(5);
-        gridPane.setVgap(5);
-        gridScroll = new ScrollPane();
-        VBox.setVgrow(gridScroll, Priority.ALWAYS);
-        VBox scrollContent = new VBox(10);
-        HBox topBox = new HBox(5);
-        Label checkAllLabel = new Label(LabelGrabber.INSTANCE.getLabel("check.uncheck.all.text"));
-        checkAllLabel.setStyle("-fx-font-weight: bold;");
-        topBox.getChildren().add(selectAllCheckBox);
-        topBox.getChildren().add(checkAllLabel);
-        scrollContent.getChildren().add(topBox);
-        scrollContent.getChildren().add(gridPane);
-        StackPane intermediatePane = new StackPane();
-        StackPane.setMargin(scrollContent, new Insets(10));
-        intermediatePane.getChildren().add(scrollContent);
-        gridScroll.setContent(intermediatePane);
-        gridScroll.setFitToWidth(true);
-        gridScroll.setFitToHeight(true);
-        mainPanel.getChildren().add(gridScroll);
-        addButton = new Button(acceptText, new ImageView(new Image("file:icons/tick.png")));
-        StackPane stackAdd = new StackPane();
-        stackAdd.getChildren().add(addButton);
-        VBox.setMargin(stackAdd, new Insets(10));
-        mainPanel.getChildren().add(stackAdd);
 
-        Scene scene = new Scene(mainPanel, 800, 600);
-        if (QueleaProperties.get().getUseDarkTheme()) {
-            scene.getStylesheets().add("org/modena_dark.css");
+        val scene = Scene(mainPanel, 800.0, 600.0)
+        if (get().useDarkTheme) {
+            scene.stylesheets.add("org/modena_dark.css")
         }
-        setScene(scene);
+        setScene(scene)
     }
 
     /**
      * Set the songs to be shown in the dialog.
-     * <p/>
+     *
+     *
      * @param songs the list of songs to be shown.
      * @param checkList a list corresponding to the song list - each position is
      * true if the checkbox should be selected, false otherwise.
      * @param defaultVal the default value to use for the checkbox if checkList
      * is null or smaller than the songs list.
      */
-    public void setSongs(final List<SongDisplayable> songs, final Map<SongDisplayable, Boolean> checkList, final boolean defaultVal) {
-        this.songs = songs;
-        gridPane.getChildren().clear();
-        checkBoxes.clear();
-        gridPane.getColumnConstraints().add(new ColumnConstraints(20));
-        ColumnConstraints titleConstraints = new ColumnConstraints();
-        titleConstraints.setHgrow(Priority.ALWAYS);
-        titleConstraints.setPercentWidth(50);
-        gridPane.getColumnConstraints().add(titleConstraints);
-        ColumnConstraints authorConstraints = new ColumnConstraints();
-        authorConstraints.setHgrow(Priority.ALWAYS);
-        authorConstraints.setPercentWidth(45);
-        gridPane.getColumnConstraints().add(authorConstraints);
+    fun setSongs(
+        songs: List<SongDisplayable>,
+        checkList: Map<SongDisplayable, Boolean>? = null,
+        defaultVal: Boolean = false
+    ) {
+        this.songs = songs
+        gridPane.clear()
+        checkBoxes.clear()
 
-        Label titleHeader = new Label(LabelGrabber.INSTANCE.getLabel("title.label"));
-        titleHeader.setAlignment(Pos.CENTER);
-        Label authorHeader = new Label(LabelGrabber.INSTANCE.getLabel("author.label"));
-        authorHeader.setAlignment(Pos.CENTER);
-        gridPane.add(titleHeader, 1, 0);
-        gridPane.add(authorHeader, 2, 0);
+        gridPane.apply {
+            constraintsForColumn(0).apply {
+                prefWidth = 20.0
+                usePrefSize = true
+            }
 
-        for(int i = 0; i < songs.size(); i++) {
-            SongDisplayable song = songs.get(i);
-            CheckBox checkBox = new CheckBox();
-            checkBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
+            //title
+            constraintsForColumn(1).apply {
+                percentWidth = 50.0
+                hgrow = Priority.ALWAYS
+            }
 
-                @Override
-                public void changed(ObservableValue<? extends Boolean> ov, Boolean t, Boolean t1) {
-                    checkEnableButton();
+            //author
+            constraintsForColumn(1).apply {
+                percentWidth = 45.0
+                hgrow = Priority.ALWAYS
+            }
+
+            row {
+                region()
+
+                label(LabelGrabber.INSTANCE.getLabel("title.label")) {
+                    titleStyle()
                 }
-            });
-            if(checkList != null) {
-                final Boolean result = checkList.get(song);
-                if(result!=null) {
-                    checkBox.setSelected(!result);
+
+                label(LabelGrabber.INSTANCE.getLabel("author.label")) {
+                    titleStyle()
                 }
             }
-            checkBoxes.add(checkBox);
-            gridPane.add(checkBox, 0, i + 1);
-            gridPane.add(new Label(song.getTitle()), 1, i + 1);
-            gridPane.add(new Label(song.getAuthor()), 2, i + 1);
+
+            for (song in songs) row {
+                checkBoxes += checkbox {
+                    selectedProperty().onChange { checkEnableButton() }
+
+                    isSelected = checkList?.get(song) ?: defaultVal
+                }
+
+                label(song.title)
+                label(song.author)
+            }
         }
 
-        for(int i = 0; i < 2; i++) {
-            Node n = gridPane.getChildren().get(i);
-            if(n instanceof Control) {
-                Control control = (Control) n;
-                control.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-                control.setStyle("-fx-alignment: center;-fx-font-weight: bold;");
-            }
-            if(n instanceof Pane) {
-                Pane pane = (Pane) n;
-                pane.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-                pane.setStyle("-fx-alignment: center;-fx-font-weight: bold;");
-            }
-        }
-        gridScroll.setVvalue(0);
-        checkEnableButton();
+        gridScroll.vvalue = 0.0
+        checkEnableButton()
+    }
+
+
+    private fun Labeled.titleStyle() {
+        alignment = Pos.CENTER
+        setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE)
+        style = "-fx-alignment: center;-fx-font-weight: bold;"
     }
 
     /**
      * Disable / enable the add button depending on if anything is selected.
      */
-    private void checkEnableButton() {
-        for(CheckBox checkBox : checkBoxes) {
-            if(checkBox.isSelected()) {
-                addButton.setDisable(false);
-                return;
-            }
-        }
-        addButton.setDisable(true);
+    private fun checkEnableButton() {
+        addButton.isDisable = checkBoxes.none { it.isSelected }
     }
 
     /**
      * Get the list of selected songs.
-     * <p/>
+     *
+     *
      * @return the list of selected songs.
      */
-    public List<SongDisplayable> getSelectedSongs() {
-        List<SongDisplayable> ret = new ArrayList<>();
-        for(int i = 0; i < songs.size(); i++) {
-            if(checkBoxes.get(i).isSelected()) {
-                ret.add(songs.get(i));
-            }
+    val selectedSongs: List<SongDisplayable>
+        get() = songs!!.filterIndexed { i, _ ->
+            checkBoxes[i].isSelected
         }
-        return ret;
-    }
-
-    /**
-     * Get the add button.
-     * <p/>
-     * @return the add button.
-     */
-    public Button getAddButton() {
-        return addButton;
-    }
 }

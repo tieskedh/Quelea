@@ -46,7 +46,7 @@ public class SelectImportedSongsDialog extends SelectSongsDialog {
             LabelGrabber.INSTANCE.getLabel("select.imported.songs.line1"),
             LabelGrabber.INSTANCE.getLabel("select.imported.songs.line2"),
             LabelGrabber.INSTANCE.getLabel("select.imported.songs.line3")
-        }, LabelGrabber.INSTANCE.getLabel("add.text"), LabelGrabber.INSTANCE.getLabel("add.to.database.question"));
+        }, LabelGrabber.INSTANCE.getLabel("add.text"));
 
         getAddButton().setOnAction(new EventHandler<javafx.event.ActionEvent>() {
             @Override

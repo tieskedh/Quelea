@@ -46,7 +46,7 @@ public class SelectExportedSongsDialog extends SelectSongsDialog {
         super(new String[]{
             LabelGrabber.INSTANCE.getLabel("select.export.songs.line1"),
             LabelGrabber.INSTANCE.getLabel("select.export.songs.line2")
-        }, LabelGrabber.INSTANCE.getLabel("add.text"), LabelGrabber.INSTANCE.getLabel("add.to.songpack.question"));
+        }, LabelGrabber.INSTANCE.getLabel("add.text"));
 
         setSongs(songs, (Map<SongDisplayable, Boolean>)null, false);
 
