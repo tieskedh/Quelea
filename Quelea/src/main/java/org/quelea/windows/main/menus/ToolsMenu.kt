@@ -16,81 +16,109 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.menus;
+package org.quelea.windows.main.menus
 
-import java.lang.ref.SoftReference;
-
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.ShortcutManager;
-import org.quelea.windows.main.QueleaApp;
-import org.quelea.windows.main.actionhandlers.LiveTextActionHandler;
-import org.quelea.windows.main.actionhandlers.SearchBibleActionHandler;
-import org.quelea.windows.main.actionhandlers.ShowOptionsActionHandler;
-import org.quelea.windows.main.actionhandlers.ViewBibleActionHandler;
-import org.quelea.windows.main.widgets.TestPaneDialog;
+import javafx.scene.control.Menu
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyCodeCombination
+import javafx.scene.input.KeyCombination
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.ShortcutManager
+import org.quelea.windows.main.QueleaApp
+import org.quelea.windows.main.actionhandlers.LiveTextActionHandler
+import org.quelea.windows.main.actionhandlers.SearchBibleActionHandler
+import org.quelea.windows.main.actionhandlers.ShowOptionsActionHandler
+import org.quelea.windows.main.actionhandlers.ViewBibleActionHandler
+import org.quelea.windows.main.widgets.TestPaneDialog
+import tornadofx.*
+import java.lang.ref.SoftReference
 
 /**
  * Quelea's tools menu.
- * <p>
+ *
+ *
  *
  * @author Michael
  */
-public class ToolsMenu extends Menu {
-
-    private final MenuItem searchBibleItem;
-    private final MenuItem viewBibleItem;
-    private final MenuItem liveTextItem;
-    private final MenuItem testItem;
-    private final MenuItem optionsItem;
-    private SoftReference<TestPaneDialog> testDialog = new SoftReference<>(null);
+class ToolsMenu : Menu(LabelGrabber.INSTANCE.getLabel("tools.menu")) {
+    private var testDialog = SoftReference<TestPaneDialog?>(null)
 
     /**
      * Create the tools menu.
      */
-    public ToolsMenu() {
-        super(LabelGrabber.INSTANCE.getLabel("tools.menu"));
-        boolean darkTheme = QueleaProperties.get().getUseDarkTheme();
+    init {
+        val darkTheme = get().useDarkTheme
 
-        viewBibleItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("view.bible.button"), new ImageView(new Image(darkTheme ? "file:icons/bible-light.png" : "file:icons/bible.png", 20, 20, false, true)));
-        viewBibleItem.setOnAction(ViewBibleActionHandler.INSTANCE);
-        getItems().add(viewBibleItem);
+        item(
+            name = LabelGrabber.INSTANCE.getLabel("view.bible.button"),
+            graphic = ImageView(
+                Image(
+                    if (darkTheme) "file:icons/bible-light.png" else "file:icons/bible.png",
+                    20.0,
+                    20.0,
+                    false,
+                    true
+                )
+            )
+        ).onAction = ViewBibleActionHandler
 
-        searchBibleItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("search.bible.button"), new ImageView(new Image(darkTheme ? "file:icons/bible-light.png" : "file:icons/bible.png", 20, 20, false, true)));
-        searchBibleItem.setOnAction(SearchBibleActionHandler.INSTANCE);
-        getItems().add(searchBibleItem);
+        item(
+            name= LabelGrabber.INSTANCE.getLabel("search.bible.button"),
+            graphic = ImageView(
+                Image(
+                    if (darkTheme) "file:icons/bible-light.png" else "file:icons/bible.png",
+                    20.0,
+                    20.0,
+                    false,
+                    true
+                )
+            )
+        ).onAction = SearchBibleActionHandler
 
-        testItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("test.patterns.text"), new ImageView(new Image("file:icons/testbars.png", 20, 20, false, true)));
-        testItem.setOnAction(t -> {
-            TestPaneDialog dialog = testDialog.get();
-            if (dialog == null) {
-                dialog = new TestPaneDialog();
-                testDialog = new SoftReference<>(dialog);
-            }
-            dialog.show();
-        });
-        getItems().add(testItem);
 
-        liveTextItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("send.live.text"), new ImageView(new Image(darkTheme ? "file:icons/live_text-light.png" : "file:icons/live_text.png", 20, 20, false, true)));
-        liveTextItem.setAccelerator(new KeyCodeCombination(KeyCode.L, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
-        liveTextItem.setOnAction(new LiveTextActionHandler());
-        if (QueleaApp.get().getMobileLyricsServer() == null) {
-            liveTextItem.setDisable(true);
+        item(
+            name=LabelGrabber.INSTANCE.getLabel("test.patterns.text"),
+            graphic = ImageView(Image("file:icons/testbars.png",
+                20.0,
+                20.0,
+                false,
+                true))
+        ).action {
+            val dialog = testDialog.get() ?: TestPaneDialog()
+                .also { testDialog = SoftReference(it) }
+
+            dialog.show()
         }
-        getItems().add(liveTextItem);
 
-        optionsItem = new MenuItem(LabelGrabber.INSTANCE.getLabel("options.button"), new ImageView(new Image("file:icons/options.png", 20, 20, false, true)));
-        optionsItem.setAccelerator(ShortcutManager.getKeyCodeCombination(QueleaProperties.get().getOptionsKeys()));
-        optionsItem.setOnAction(new ShowOptionsActionHandler());
+        item(
+            name = LabelGrabber.INSTANCE.getLabel("send.live.text"),
+            graphic = ImageView(
+                Image(
+                    if (darkTheme) "file:icons/live_text-light.png" else "file:icons/live_text.png",
+                    20.0,
+                    20.0,
+                    false,
+                    true
+                )
+            ),
+            keyCombination = KeyCodeCombination(KeyCode.L, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN)
+        ){
+            isDisable = QueleaApp.get().mobileLyricsServer == null
+            onAction = LiveTextActionHandler()
+        }
 
-        getItems().add(optionsItem);
+        item(
+            name=LabelGrabber.INSTANCE.getLabel("options.button"),
+            graphic = ImageView(Image("file:icons/options.png",
+                20.0,
+                20.0,
+                false,
+                true
+            )),
+            keyCombination = ShortcutManager.getKeyCodeCombination(get().optionsKeys)
+        ).onAction = ShowOptionsActionHandler()
     }
-
 }
