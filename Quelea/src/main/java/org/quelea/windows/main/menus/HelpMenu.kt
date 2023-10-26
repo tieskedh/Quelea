@@ -16,89 +16,67 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.quelea.windows.main.menus;
+package org.quelea.windows.main.menus
 
-import java.awt.Desktop;
-import java.util.logging.Logger;
-import javafx.application.Platform;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import org.javafx.dialog.Dialog;
-import org.quelea.services.languages.LabelGrabber;
-import org.quelea.services.utils.LoggerUtils;
-import org.quelea.services.utils.QueleaProperties;
-import org.quelea.services.utils.UpdateChecker;
-import org.quelea.utils.DesktopApi;
-import org.quelea.windows.help.AboutDialog;
-import tornadofx.FX;
+import javafx.scene.control.Menu
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import org.quelea.services.languages.LabelGrabber
+import org.quelea.services.utils.QueleaProperties.Companion.get
+import org.quelea.services.utils.UpdateChecker
+import org.quelea.utils.DesktopApi
+import org.quelea.windows.help.AboutDialog
+import tornadofx.*
+import java.awt.Desktop
 
 /**
  * Quelea's help menu.
- * <p/>
+ *
+ *
  * @author Michael
  */
-public class HelpMenu extends Menu {
-
-    private static final Logger LOGGER = LoggerUtils.getLogger();
-    private final MenuItem queleaFacebook;
-    private final MenuItem queleaDiscuss;
-    private final MenuItem queleaWiki;
-    private final MenuItem updateCheck;
-    private final MenuItem about;
-
+class HelpMenu : Menu(LabelGrabber.INSTANCE.getLabel("help.menu")) {
     /**
      * Create a new help menu
      */
-    public HelpMenu() {
-        super(LabelGrabber.INSTANCE.getLabel("help.menu"));
-
+    init {
         if (Desktop.isDesktopSupported()) {
-            queleaFacebook = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.facebook"), new ImageView(new Image("file:icons/facebook.png", 16, 16, false, true)));
-            queleaFacebook.setOnAction(t -> {
-                launchPage(QueleaProperties.get().getFacebookPageLocation());
-            });
-            getItems().add(queleaFacebook);
-            queleaDiscuss = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.discussion"), new ImageView(new Image("file:icons/discuss.png", 16, 16, false, true)));
-            queleaDiscuss.setOnAction(t -> {
-                launchPage(QueleaProperties.get().getDiscussLocation());
-            });
-            getItems().add(queleaDiscuss);
-            queleaWiki = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.wiki"), new ImageView(new Image("file:icons/wiki.png", 16, 16, false, true)));
-            queleaWiki.setOnAction(t -> {
-                launchPage(QueleaProperties.get().getWikiPageLocation());
-            });
-            getItems().add(queleaWiki);
-        } else {
-            queleaDiscuss = null;
-            queleaFacebook = null;
-            queleaWiki = null;
+            queleaMenuItem(
+                labelName = "help.menu.facebook",
+                icon = "facebook"
+            ) { launchPage(get().facebookPageLocation) }
+
+            queleaMenuItem(
+                labelName = "help.menu.discussion",
+                icon = "discuss"
+            ) { launchPage(get().discussLocation) }
+
+            queleaMenuItem(
+                labelName = "help.menu.wiki",
+                icon = "wiki"
+            ) { launchPage(get().wikiPageLocation) }
         }
-        updateCheck = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.update"), new ImageView(new Image("file:icons/update.png", 16, 16, false, true)));
-        updateCheck.setOnAction(t -> {
-            new UpdateChecker().checkUpdate(true, true, true);
-        });
-        getItems().add(updateCheck);
-        about = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.about"), new ImageView(new Image("file:icons/about.png", 16, 16, false, true)));
-        about.setOnAction(t -> {
-            FX.find(AboutDialog.class).openModal();
-        });
-        getItems().add(about);
+
+        queleaMenuItem(
+            labelName = "help.menu.update",
+            icon = "update"
+        ) { UpdateChecker().checkUpdate(true, true, true) }
+
+
+        queleaMenuItem(
+            labelName = "help.menu.about",
+            icon = "about"
+        ){ find<AboutDialog>().openModal() }
     }
 
-    private void launchPage(String page) {
-        DesktopApi.browse(page);
-    }
-
-    /**
-     * Show a dialog saying we couldn't open the given location.
-     * <p/>
-     * @param page the location that failed to open.
-     */
-    private void showError(String page) {
-        Platform.runLater(() -> {
-            Dialog.showError(LabelGrabber.INSTANCE.getLabel("help.menu.error.title"), LabelGrabber.INSTANCE.getLabel("help.menu.error.text").replace("$1", page));
-        });
-    }
+    private fun launchPage(page: String) = DesktopApi.browse(page)
 }
+
+fun Menu.queleaMenuItem(
+    labelName : String,
+    icon : String,
+    action : () -> Unit
+) = item(
+    name = LabelGrabber.INSTANCE.getLabel(labelName),
+    graphic = ImageView(Image("file:icons/$icon.png", 16.0, 16.0, false, true))
+).action(action)
