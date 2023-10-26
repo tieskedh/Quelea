@@ -32,6 +32,7 @@ import org.quelea.services.utils.QueleaProperties;
 import org.quelea.services.utils.UpdateChecker;
 import org.quelea.utils.DesktopApi;
 import org.quelea.windows.help.AboutDialog;
+import tornadofx.FX;
 
 /**
  * Quelea's help menu.
@@ -46,17 +47,12 @@ public class HelpMenu extends Menu {
     private final MenuItem queleaWiki;
     private final MenuItem updateCheck;
     private final MenuItem about;
-    private AboutDialog aboutDialog;
 
     /**
      * Create a new help menu
      */
     public HelpMenu() {
         super(LabelGrabber.INSTANCE.getLabel("help.menu"));
-
-        Platform.runLater(() -> {
-            aboutDialog = new AboutDialog();
-        });
 
         if (Desktop.isDesktopSupported()) {
             queleaFacebook = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.facebook"), new ImageView(new Image("file:icons/facebook.png", 16, 16, false, true)));
@@ -86,7 +82,7 @@ public class HelpMenu extends Menu {
         getItems().add(updateCheck);
         about = new MenuItem(LabelGrabber.INSTANCE.getLabel("help.menu.about"), new ImageView(new Image("file:icons/about.png", 16, 16, false, true)));
         about.setOnAction(t -> {
-            aboutDialog.show();
+            FX.find(AboutDialog.class).openModal();
         });
         getItems().add(about);
     }
